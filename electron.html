@@ -1797,24 +1797,21 @@
             saveSettings();
         }
         
-        // 자동 감지
+        // 수동 감지 버튼 - 바로 추가
         document.getElementById('scanBtn').addEventListener('click', async () => {
             const scanBtn = document.getElementById('scanBtn');
             scanBtn.classList.add('scanning');
             scanBtn.textContent = '감지 중...';
-            toast('🔍', '실행 중인 AI 앱 검색 중...');
             
             try {
-                // 데스크탑 앱 + 브라우저 탭 모두 감지
                 const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
-                
-                const detected = [];
+                let addedCount = 0;
                 
                 runningApps.forEach(appInfo => {
                     const name = appInfo.name;
                     const key = name.toLowerCase().replace(/[\s()]/g, '');
                     
-                    // 이미 모니터링 중인지 확인
+                    // 이미 추가된 앱은 건너뛰기
                     if (state.apps[key]?.monitored) return;
                     
                     // 색상 결정
@@ -1827,21 +1824,30 @@
                     else if (name.includes('Grok')) color = '#ef4444';
                     else if (name.includes('Copilot')) color = '#3b82f6';
                     
-                    detected.push({
+                    // 바로 추가
+                    state.apps[key] = {
                         name: name,
-                        key: key,
                         url: appInfo.url || '',
-                        color: color,
+                        color: 'custom',
+                        customColor: color,
+                        status: 'idle',
+                        progress: 0,
+                        monitored: true,
+                        screenshot: null,
                         type: appInfo.type,
                         browser: appInfo.browser
-                    });
+                    };
+                    
+                    addedCount++;
                 });
                 
-                if (detected.length > 0) {
-                    showDetectedApps(detected);
-                    toast('✓', `${detected.length}개 AI 발견`);
+                if (addedCount > 0) {
+                    toast('✓', `${addedCount}개 AI 추가됨`);
+                    renderWorkspace();
+                    renderStatusQueue();
+                    startCapturing();
                 } else {
-                    toast('ℹ', '실행 중인 AI가 없습니다');
+                    toast('ℹ', '새로운 AI가 없습니다');
                 }
                 
             } catch (e) {
@@ -1914,9 +1920,60 @@
         loadSettings();
         render();
         
-        // 모니터링 중인 앱이 있으면 캡처 시작
-        if (Object.values(state.apps).some(app => app.monitored)) {
-            startCapturing();
+        // 앱 시작 시 자동 감지
+        autoDetectAI();
+        
+        // 5초마다 자동 감지 (새로 실행된 AI 앱 추가)
+        setInterval(autoDetectAI, 5000);
+        
+        async function autoDetectAI() {
+            try {
+                const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
+                let addedCount = 0;
+                
+                runningApps.forEach(appInfo => {
+                    const name = appInfo.name;
+                    const key = name.toLowerCase().replace(/[\s()]/g, '');
+                    
+                    // 이미 추가된 앱은 건너뛰기
+                    if (state.apps[key]?.monitored) return;
+                    
+                    // 색상 결정
+                    let color = '#a78bfa';
+                    if (name.includes('ChatGPT')) color = '#10b981';
+                    else if (name.includes('Gemini')) color = '#3b82f6';
+                    else if (name.includes('Claude')) color = '#a78bfa';
+                    else if (name.includes('Perplexity')) color = '#06b6d4';
+                    else if (name.includes('Cursor')) color = '#f59e0b';
+                    else if (name.includes('Grok')) color = '#ef4444';
+                    else if (name.includes('Copilot')) color = '#3b82f6';
+                    
+                    // 자동으로 모니터링에 추가
+                    state.apps[key] = {
+                        name: name,
+                        url: appInfo.url || '',
+                        color: 'custom',
+                        customColor: color,
+                        status: 'idle',
+                        progress: 0,
+                        monitored: true,
+                        screenshot: null,
+                        type: appInfo.type,
+                        browser: appInfo.browser
+                    };
+                    
+                    addedCount++;
+                });
+                
+                if (addedCount > 0) {
+                    toast('✓', `${addedCount}개 AI 자동 감지`);
+                    renderWorkspace();
+                    renderStatusQueue();
+                    startCapturing();
+                }
+            } catch (e) {
+                console.error('Auto detect failed:', e);
+            }
         }
     </script>
 </body>
