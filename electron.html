@@ -1406,26 +1406,39 @@
                                 <span>${t(app.status === 'running' ? 'running' : app.status === 'done' ? 'done' : 'ready')}</span>
                             </div>
                             <div class="window-actions">
-                                <button class="window-btn reload-btn" data-app="${key}" title="스크린샷 갱신">⟳</button>
                                 <button class="window-btn open-btn" data-app="${key}" title="앱 열기">↗</button>
                             </div>
                         </div>
                         <div class="window-body" data-app="${key}">
                             ${app.screenshot 
                                 ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">`
-                                : `<div class="window-placeholder">
-                                    <div class="loading-spinner"></div>
-                                    <div class="placeholder-text">캡처 중...</div>
+                                : `<div class="window-placeholder" style="cursor: pointer;">
+                                    <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">${getAppEmoji(app.name)}</div>
+                                    <div class="placeholder-text" style="font-size: 16px; color: var(--text-secondary);">${app.name}</div>
+                                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">클릭하여 열기</div>
                                   </div>`
                             }
-                            <div class="window-overlay">
-                                <button class="overlay-btn" data-app="${key}">클릭하여 ${app.name} 열기</button>
-                            </div>
                             ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:${app.progress}%"></div></div>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
+            
+            function getAppEmoji(name) {
+                const n = name.toLowerCase();
+                if (n.includes('claude')) return '🟣';
+                if (n.includes('chatgpt') || n.includes('gpt')) return '🟢';
+                if (n.includes('gemini')) return '🔵';
+                if (n.includes('cursor')) return '🟡';
+                if (n.includes('perplexity')) return '🔷';
+                if (n.includes('midjourney')) return '🎨';
+                if (n.includes('runway') || n.includes('pika') || n.includes('kling') || n.includes('sora')) return '🎬';
+                if (n.includes('nano') || n.includes('banana')) return '🍌';
+                if (n.includes('notion')) return '📝';
+                if (n.includes('figma')) return '🎯';
+                if (n.includes('canva')) return '🖼️';
+                return '🤖';
+            }
             
             // 클릭하면 앱 활성화
             workspace.querySelectorAll('.window-body').forEach(body => {
@@ -1742,15 +1755,7 @@
                 }
             });
             
-            // 캡처 실패 시 권한 안내
-            if (successCount === 0 && monitoredApps.length > 0) {
-                captureFailCount++;
-                if (captureFailCount === 3) {
-                    showPermissionGuide();
-                }
-            } else {
-                captureFailCount = 0;
-            }
+            // 캡처 실패해도 앱 목록은 유지 (권한 안내 제거)
         }
         
         function showPermissionGuide() {
