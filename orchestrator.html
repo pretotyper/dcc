@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>DCC - AI Orchestrator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #18181b;
+            --bg-surface: #1f1f23;
+            --bg-elevated: #27272a;
+            --bg-hover: #2e2e33;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-tertiary: #71717a;
+            --accent: #a78bfa;
+            --accent-soft: rgba(167, 139, 250, 0.1);
+            --green: #22c55e;
+            --green-soft: rgba(34, 197, 94, 0.1);
+            --orange: #f59e0b;
+            --radius: 8px;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            -webkit-app-region: drag;
+        }
+        
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            height: 52px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            padding-left: 80px;
+            gap: 16px;
+        }
+        
+        .logo {
+            font-weight: 700;
+            font-size: 16px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+        
+        .spacer { flex: 1; }
+        
+        .scan-btn {
+            -webkit-app-region: no-drag;
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .scan-btn:hover { opacity: 0.9; }
+        .scan-btn.scanning { animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Main */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* App List */
+        .app-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-tertiary);
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+        
+        .empty-text {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .empty-hint {
+            font-size: 12px;
+            color: var(--text-quaternary);
+        }
+        
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .app-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            -webkit-app-region: no-drag;
+        }
+        
+        .app-card:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        .app-card.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .app-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .app-icon.claude { background: #a78bfa; }
+        .app-icon.chatgpt { background: #10b981; }
+        .app-icon.cursor { background: #3b82f6; }
+        .app-icon.chrome { background: #f59e0b; }
+        .app-icon.safari { background: #06b6d4; }
+        .app-icon.notion { background: #e11d48; }
+        
+        .app-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .app-status {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        
+        .app-status.running {
+            color: var(--green);
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-subtle);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .layout-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+        
+        .layout-options {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .layout-btn {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-tertiary);
+            transition: all 0.15s ease;
+            -webkit-app-region: no-drag;
+        }
+        
+        .layout-btn:hover {
+            border-color: var(--text-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .layout-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+        
+        .layout-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .layout-btn span {
+            font-size: 10px;
+        }
+        
+        .selected-apps {
+            flex: 1;
+        }
+        
+        .selected-apps h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+        
+        .selected-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .selected-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius);
+            font-size: 13px;
+        }
+        
+        .selected-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            background: var(--accent);
+        }
+        
+        .selected-remove {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-size: 16px;
+            -webkit-app-region: no-drag;
+        }
+        
+        .selected-remove:hover { color: var(--text-primary); }
+        
+        .apply-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: var(--radius);
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+        }
+        
+        .apply-btn:hover { opacity: 0.9; }
+        .apply-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            display: none;
+            animation: slideUp 0.2s ease;
+        }
+        
+        .toast.show { display: block; }
+        
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <span class="logo">DCC</span>
+            <div class="status">
+                <div class="status-dot"></div>
+                <span id="statusText">준비됨</span>
+            </div>
+            <div class="spacer"></div>
+            <button class="scan-btn" id="scanBtn">
+                <span>🔍</span>
+                <span>AI 앱 스캔</span>
+            </button>
+        </header>
+        
+        <main class="main">
+            <div class="app-list">
+                <div class="section-title">실행 중인 AI 앱</div>
+                <div id="appGrid" class="app-grid">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">📱</div>
+                        <div class="empty-text">실행 중인 AI 앱이 없습니다</div>
+                        <div class="empty-hint">Claude, ChatGPT, Cursor 등을 실행한 후<br>🔍 스캔 버튼을 눌러주세요</div>
+                    </div>
+                </div>
+            </div>
+            
+            <aside class="sidebar">
+                <div class="layout-section">
+                    <h3>레이아웃</h3>
+                    <div class="layout-options">
+                        <button class="layout-btn active" data-layout="split">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="8" height="18" rx="1"/>
+                                <rect x="13" y="3" width="8" height="18" rx="1"/>
+                            </svg>
+                            <span>Split</span>
+                        </button>
+                        <button class="layout-btn" data-layout="grid">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="8" height="8" rx="1"/>
+                                <rect x="13" y="3" width="8" height="8" rx="1"/>
+                                <rect x="3" y="13" width="8" height="8" rx="1"/>
+                                <rect x="13" y="13" width="8" height="8" rx="1"/>
+                            </svg>
+                            <span>Grid</span>
+                        </button>
+                        <button class="layout-btn" data-layout="focus">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            </svg>
+                            <span>Focus</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="selected-apps">
+                    <h3>선택된 앱 (<span id="selectedCount">0</span>)</h3>
+                    <div class="selected-list" id="selectedList">
+                        <!-- 선택된 앱 목록 -->
+                    </div>
+                </div>
+                
+                <button class="apply-btn" id="applyBtn" disabled>
+                    창 배치하기
+                </button>
+            </aside>
+        </main>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        let runningApps = [];
+        let selectedApps = [];
+        let currentLayout = 'split';
+        
+        // 스캔 버튼
+        document.getElementById('scanBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('scanBtn');
+            btn.classList.add('scanning');
+            document.getElementById('statusText').textContent = '스캔 중...';
+            
+            try {
+                // 실행 중인 앱 감지
+                const apps = await ipcRenderer.invoke('get-running-ai-apps');
+                
+                // 브라우저 AI 탭도 감지
+                const browserTabs = await ipcRenderer.invoke('get-browser-ai-tabs');
+                
+                runningApps = [];
+                
+                // 데스크톱 앱 추가
+                apps.forEach(app => {
+                    let icon = app.charAt(0);
+                    let iconClass = app.toLowerCase().replace(/\s/g, '');
+                    
+                    runningApps.push({
+                        name: app,
+                        type: 'desktop',
+                        icon: icon,
+                        iconClass: iconClass
+                    });
+                });
+                
+                // 브라우저 탭 추가
+                browserTabs.forEach(result => {
+                    if (result.tabs.includes('claude.ai')) {
+                        runningApps.push({ name: 'Claude (Web)', type: 'browser', browser: result.browser, icon: 'C', iconClass: 'claude' });
+                    }
+                    if (result.tabs.includes('chat.openai.com')) {
+                        runningApps.push({ name: 'ChatGPT (Web)', type: 'browser', browser: result.browser, icon: 'G', iconClass: 'chatgpt' });
+                    }
+                    if (result.tabs.includes('gemini.google.com')) {
+                        runningApps.push({ name: 'Gemini (Web)', type: 'browser', browser: result.browser, icon: 'G', iconClass: 'chrome' });
+                    }
+                    if (result.tabs.includes('perplexity.ai')) {
+                        runningApps.push({ name: 'Perplexity (Web)', type: 'browser', browser: result.browser, icon: 'P', iconClass: 'safari' });
+                    }
+                });
+                
+                renderApps();
+                
+                if (runningApps.length > 0) {
+                    showToast(`${runningApps.length}개 AI 앱 발견`);
+                    document.getElementById('statusText').textContent = `${runningApps.length}개 앱 실행 중`;
+                } else {
+                    showToast('실행 중인 AI 앱이 없습니다');
+                    document.getElementById('statusText').textContent = '앱 없음';
+                }
+                
+            } catch (e) {
+                console.error(e);
+                showToast('스캔 실패');
+            }
+            
+            btn.classList.remove('scanning');
+        });
+        
+        function renderApps() {
+            const grid = document.getElementById('appGrid');
+            const empty = document.getElementById('emptyState');
+            
+            if (runningApps.length === 0) {
+                empty.style.display = 'block';
+                grid.innerHTML = '';
+                grid.appendChild(empty);
+                return;
+            }
+            
+            empty.style.display = 'none';
+            
+            grid.innerHTML = runningApps.map((app, i) => `
+                <div class="app-card ${selectedApps.includes(app.name) ? 'selected' : ''}" data-index="${i}">
+                    <div class="app-header">
+                        <div class="app-icon ${app.iconClass}">${app.icon}</div>
+                        <div>
+                            <div class="app-name">${app.name}</div>
+                            <div class="app-status running">${app.type === 'browser' ? app.browser : '실행 중'}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 클릭 이벤트
+            grid.querySelectorAll('.app-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const index = parseInt(card.dataset.index);
+                    const app = runningApps[index];
+                    
+                    if (selectedApps.includes(app.name)) {
+                        selectedApps = selectedApps.filter(a => a !== app.name);
+                    } else {
+                        selectedApps.push(app.name);
+                    }
+                    
+                    renderApps();
+                    renderSelected();
+                });
+                
+                // 더블클릭으로 앱 활성화
+                card.addEventListener('dblclick', async () => {
+                    const index = parseInt(card.dataset.index);
+                    const app = runningApps[index];
+                    
+                    if (app.type === 'browser') {
+                        await ipcRenderer.invoke('activate-app', app.browser);
+                    } else {
+                        await ipcRenderer.invoke('activate-app', app.name);
+                    }
+                    showToast(`${app.name} 활성화`);
+                });
+            });
+        }
+        
+        function renderSelected() {
+            const list = document.getElementById('selectedList');
+            document.getElementById('selectedCount').textContent = selectedApps.length;
+            document.getElementById('applyBtn').disabled = selectedApps.length === 0;
+            
+            list.innerHTML = selectedApps.map(name => `
+                <div class="selected-item">
+                    <div class="selected-dot"></div>
+                    <span>${name}</span>
+                    <button class="selected-remove" data-name="${name}">×</button>
+                </div>
+            `).join('');
+            
+            list.querySelectorAll('.selected-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectedApps = selectedApps.filter(a => a !== btn.dataset.name);
+                    renderApps();
+                    renderSelected();
+                });
+            });
+        }
+        
+        // 레이아웃 선택
+        document.querySelectorAll('.layout-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLayout = btn.dataset.layout;
+            });
+        });
+        
+        // 창 배치 적용
+        document.getElementById('applyBtn').addEventListener('click', async () => {
+            if (selectedApps.length === 0) return;
+            
+            // 선택된 앱들의 실제 이름 가져오기 (Web 제거)
+            const appNames = selectedApps.map(name => {
+                const app = runningApps.find(a => a.name === name);
+                if (app?.type === 'browser') {
+                    return app.browser;
+                }
+                return name;
+            });
+            
+            showToast('창 배치 중...');
+            
+            await ipcRenderer.invoke('arrange-windows', appNames, currentLayout);
+            
+            showToast('창 배치 완료!');
+        });
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        // 초기 스캔
+        document.getElementById('scanBtn').click();
+    </script>
+</body>
+</html>

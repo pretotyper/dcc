@@ -1,122 +1,163 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { exec } = require('child_process');
-
-// GPU 크래시 방지
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-software-rasterizer');
+const { exec, execSync } = require('child_process');
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1400,
-        height: 900,
-        minWidth: 800,
-        minHeight: 600,
+        width: 1200,
+        height: 700,
+        minWidth: 600,
+        minHeight: 400,
         titleBarStyle: 'hiddenInset',
         trafficLightPosition: { x: 15, y: 15 },
         backgroundColor: '#18181b',
+        alwaysOnTop: false,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false,
-            webviewTag: true,
-            webSecurity: false  // webview CORS 문제 방지
+            contextIsolation: false
         }
     });
 
-    // 크래시 핸들링
-    win.webContents.on('crashed', () => {
-        console.log('Renderer crashed, reloading...');
-        win.reload();
-    });
-
-    win.on('unresponsive', () => {
-        console.log('Window unresponsive, reloading...');
-        win.reload();
-    });
-
-    win.loadFile('electron.html');
+    win.loadFile('orchestrator.html');
 }
 
-// 실행 중인 앱 감지 (macOS) - 개선된 버전
-ipcMain.handle('get-running-apps', async () => {
+// 실행 중인 AI 앱 감지
+ipcMain.handle('get-running-ai-apps', async () => {
     return new Promise((resolve) => {
-        // ps 명령어로 실행 중인 앱 확인 (AppleScript 권한 불필요)
-        exec(`ps aux | grep -E "(Claude|ChatGPT|Cursor|Notion|Slack)" | grep -v grep`, (error, stdout) => {
-            const apps = [];
-            if (stdout) {
-                if (stdout.includes('Claude')) apps.push('Claude');
-                if (stdout.includes('ChatGPT')) apps.push('ChatGPT');
-                if (stdout.includes('Cursor')) apps.push('Cursor');
-                if (stdout.includes('Notion')) apps.push('Notion');
+        const aiApps = ['Claude', 'ChatGPT', 'Cursor', 'Notion', 'Slack', 'Arc', 'Safari', 'Google Chrome', 'Firefox'];
+        const script = `
+tell application "System Events"
+    set runningApps to name of every process whose background only is false
+end tell
+return runningApps`;
+        
+        exec(`osascript -e '${script}'`, (error, stdout) => {
+            if (error) {
+                // fallback: ps 명령어 사용
+                exec(`ps aux`, (err, out) => {
+                    const found = aiApps.filter(app => out.includes(app));
+                    resolve(found);
+                });
+                return;
             }
-            resolve(apps);
+            const running = stdout.trim().split(', ');
+            const found = running.filter(app => aiApps.some(ai => app.includes(ai)));
+            resolve(found);
         });
     });
 });
 
-// Chrome 탭 감지 (개선된 버전)
-ipcMain.handle('get-chrome-tabs', async () => {
+// 앱 활성화 (창을 앞으로 가져오기)
+ipcMain.handle('activate-app', async (event, appName) => {
     return new Promise((resolve) => {
-        // Chrome이 실행 중인지 먼저 확인
-        exec(`pgrep -x "Google Chrome"`, (error, stdout) => {
-            if (error || !stdout.trim()) {
-                resolve('');
-                return;
+        const script = `tell application "${appName}" to activate`;
+        exec(`osascript -e '${script}'`, (error) => {
+            resolve(!error);
+        });
+    });
+});
+
+// 창 배치 (Split View 스타일)
+ipcMain.handle('arrange-windows', async (event, apps, layout) => {
+    return new Promise((resolve) => {
+        // 화면 크기 가져오기
+        const screenScript = `
+tell application "Finder"
+    set screenBounds to bounds of window of desktop
+end tell
+return screenBounds`;
+        
+        exec(`osascript -e '${screenScript}'`, (err, screenOut) => {
+            // 기본 화면 크기 사용
+            const screenWidth = 1920;
+            const screenHeight = 1080;
+            const menuBarHeight = 25;
+            
+            let positions = [];
+            
+            if (layout === 'split' && apps.length >= 2) {
+                positions = [
+                    { x: 0, y: menuBarHeight, w: screenWidth / 2, h: screenHeight - menuBarHeight },
+                    { x: screenWidth / 2, y: menuBarHeight, w: screenWidth / 2, h: screenHeight - menuBarHeight }
+                ];
+            } else if (layout === 'grid' && apps.length >= 4) {
+                positions = [
+                    { x: 0, y: menuBarHeight, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
+                    { x: screenWidth / 2, y: menuBarHeight, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
+                    { x: 0, y: menuBarHeight + (screenHeight - menuBarHeight) / 2, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
+                    { x: screenWidth / 2, y: menuBarHeight + (screenHeight - menuBarHeight) / 2, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 }
+                ];
+            } else if (layout === 'focus' && apps.length >= 1) {
+                positions = [
+                    { x: 100, y: menuBarHeight + 50, w: screenWidth - 200, h: screenHeight - menuBarHeight - 100 }
+                ];
             }
             
-            // Chrome 실행 중이면 AppleScript로 탭 가져오기
-            const script = `
-tell application "Google Chrome"
-    set tabInfo to ""
-    repeat with w in windows
-        repeat with t in tabs of w
-            set tabInfo to tabInfo & URL of t & "\\n"
-        end repeat
-    end repeat
-    return tabInfo
+            // 각 앱 창 위치 조정
+            apps.forEach((appName, i) => {
+                if (positions[i]) {
+                    const pos = positions[i];
+                    const moveScript = `
+tell application "System Events"
+    tell process "${appName}"
+        set position of window 1 to {${pos.x}, ${pos.y}}
+        set size of window 1 to {${pos.w}, ${pos.h}}
+    end tell
 end tell`;
-            
-            exec(`osascript -e '${script}'`, (err, out) => {
-                if (err) {
-                    console.log('Chrome AppleScript error:', err.message);
-                    resolve('');
-                    return;
+                    exec(`osascript -e '${moveScript}'`);
                 }
-                resolve(out.trim());
             });
+            
+            resolve(true);
         });
     });
 });
 
-// Safari 탭 감지 (개선된 버전)
-ipcMain.handle('get-safari-tabs', async () => {
+// 브라우저에서 AI 탭 찾기
+ipcMain.handle('get-browser-ai-tabs', async () => {
     return new Promise((resolve) => {
-        // Safari가 실행 중인지 먼저 확인
-        exec(`pgrep -x "Safari"`, (error, stdout) => {
-            if (error || !stdout.trim()) {
-                resolve('');
-                return;
-            }
-            
-            const script = `
-tell application "Safari"
-    set tabInfo to ""
+        const results = [];
+        
+        // Chrome 탭 확인
+        const chromeScript = `
+tell application "Google Chrome"
+    set tabList to {}
     repeat with w in windows
         repeat with t in tabs of w
-            set tabInfo to tabInfo & URL of t & "\\n"
+            set tabURL to URL of t
+            if tabURL contains "claude.ai" or tabURL contains "chat.openai.com" or tabURL contains "gemini.google.com" or tabURL contains "perplexity.ai" then
+                set end of tabList to {title of t, tabURL}
+            end if
         end repeat
     end repeat
-    return tabInfo
+    return tabList
+end tell`;
+        
+        exec(`osascript -e '${chromeScript}'`, (err, out) => {
+            if (!err && out.trim()) {
+                results.push({ browser: 'Chrome', tabs: out.trim() });
+            }
+            
+            // Safari도 확인
+            const safariScript = `
+tell application "Safari"
+    set tabList to {}
+    repeat with w in windows
+        repeat with t in tabs of w
+            set tabURL to URL of t
+            if tabURL contains "claude.ai" or tabURL contains "chat.openai.com" or tabURL contains "gemini.google.com" or tabURL contains "perplexity.ai" then
+                set end of tabList to {name of t, tabURL}
+            end if
+        end repeat
+    end repeat
+    return tabList
 end tell`;
             
-            exec(`osascript -e '${script}'`, (err, out) => {
-                if (err) {
-                    console.log('Safari AppleScript error:', err.message);
-                    resolve('');
-                    return;
+            exec(`osascript -e '${safariScript}'`, (err2, out2) => {
+                if (!err2 && out2.trim()) {
+                    results.push({ browser: 'Safari', tabs: out2.trim() });
                 }
-                resolve(out.trim());
+                resolve(results);
             });
         });
     });
