@@ -1280,12 +1280,43 @@
             }).join('');
         }
         
+        // 앱별 목적 분류
+        const appPurposeMap = {
+            'cursor': 'coding',
+            'claude': 'research',
+            'claudechrome': 'research',
+            'claudesafari': 'research',
+            'chatgpt': 'research',
+            'chatgptchrome': 'research',
+            'chatgptsafari': 'research',
+            'gemini': 'research',
+            'geminichrome': 'research',
+            'geminisafari': 'research',
+            'perplexity': 'research',
+            'perplexitychrome': 'research',
+            'grok': 'research',
+            'copilot': 'coding',
+            'notion': 'creative',
+            'midjourney': 'creative',
+            'runway': 'creative',
+            'dalle': 'creative'
+        };
+        
         function renderWorkspace() {
             const workspace = document.getElementById('workspace');
             workspace.className = `workspace layout-${state.currentLayout}`;
             
             const count = state.layouts[state.currentLayout];
-            const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
+            let monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
+            
+            // 목적별 필터링 (all이 아닌 경우)
+            if (state.currentPurpose !== 'all') {
+                monitoredApps = monitoredApps.filter(([key, _]) => {
+                    const purpose = appPurposeMap[key] || 'research';
+                    return purpose === state.currentPurpose;
+                });
+            }
+            
             const appsToShow = monitoredApps.slice(0, count);
             
             if (appsToShow.length === 0) {
@@ -1626,6 +1657,8 @@
         // ========== Screenshot Capture ==========
         let captureInterval = null;
         
+        let captureFailCount = 0;
+        
         async function captureScreenshots() {
             const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
             if (monitoredApps.length === 0) return;
@@ -1638,19 +1671,55 @@
             
             const results = await ipcRenderer.invoke('capture-all-windows', appInfos);
             
+            let successCount = 0;
             monitoredApps.forEach(([key, app]) => {
                 if (results[app.name]) {
                     app.screenshot = results[app.name];
+                    successCount++;
                     // 이미지만 업데이트 (전체 리렌더 방지)
                     const img = document.querySelector(`.window[data-app="${key}"] .window-screenshot`);
                     if (img) {
                         img.src = results[app.name];
                     } else {
-                        // 이미지가 없으면 전체 렌더
                         renderWorkspace();
                     }
                 }
             });
+            
+            // 캡처 실패 시 권한 안내
+            if (successCount === 0 && monitoredApps.length > 0) {
+                captureFailCount++;
+                if (captureFailCount === 3) {
+                    showPermissionGuide();
+                }
+            } else {
+                captureFailCount = 0;
+            }
+        }
+        
+        function showPermissionGuide() {
+            const workspace = document.getElementById('workspace');
+            workspace.innerHTML = `
+                <div class="window">
+                    <div class="window-body">
+                        <div class="window-placeholder" style="text-align: center; padding: 40px;">
+                            <div style="font-size: 16px; color: var(--text-primary); margin-bottom: 16px;">
+                                화면 캡처 권한이 필요합니다
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px;">
+                                1. <strong>시스템 설정</strong> → <strong>개인정보 보호 및 보안</strong><br>
+                                2. <strong>화면 녹화</strong> 클릭<br>
+                                3. <strong>DCC</strong> 앱 활성화<br>
+                                4. DCC 앱 재시작
+                            </div>
+                            <button onclick="require('electron').shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')" 
+                                    style="background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                시스템 설정 열기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
         
         function startCapturing() {
