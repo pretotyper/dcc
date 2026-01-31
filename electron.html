@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCC - AI Screen Orchestrator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -76,11 +79,14 @@
             gap: 10px;
             font-weight: 600;
             font-size: 14px;
+            margin-top: 2px;
         }
         
         .logo-text {
+            font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 18px;
+            letter-spacing: -0.5px;
             background: linear-gradient(135deg, var(--accent), #818cf8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -1191,18 +1197,31 @@
         // ========== Render Functions ==========
         function renderStatusQueue() {
             const container = document.getElementById('statusQueue');
-            const runningApps = Object.entries(state.apps).filter(([_, app]) => app.status === 'running');
+            const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
+            const runningApps = monitoredApps.filter(([_, app]) => app.status === 'running');
             
-            if (runningApps.length === 0) {
+            // 감지된 AI가 없을 때
+            if (monitoredApps.length === 0) {
                 container.innerHTML = `
                     <div class="queue-idle">
-                        <div class="queue-idle-dot"></div>
-                        <span>${t('allReady')}</span>
+                        <span style="color: var(--text-quaternary);">감지된 AI가 없습니다</span>
                     </div>
                 `;
                 return;
             }
             
+            // 작업 중인 AI가 없을 때 (모두 대기 중)
+            if (runningApps.length === 0) {
+                container.innerHTML = `
+                    <div class="queue-idle">
+                        <div class="queue-idle-dot"></div>
+                        <span>모든 AI가 요청을 기다리고 있습니다</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 작업 중인 AI 표시
             container.innerHTML = runningApps.map(([key, app]) => `
                 <div class="queue-item running" data-app="${key}">
                     <div class="queue-dot"></div>
@@ -1221,8 +1240,18 @@
                 items = items.filter(item => purposeApps.includes(item.app));
             }
             
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div style="font-size: 11px; color: var(--text-quaternary); padding: 12px 8px; text-align: center;">
+                        아직 진행 중인 작업이 없습니다
+                    </div>
+                `;
+                return;
+            }
+            
             container.innerHTML = items.map(item => {
                 const app = state.apps[item.app];
+                if (!app) return '';
                 return `
                     <div class="timeline-item ${state.focusedApp === item.app ? 'active' : ''}" data-app="${item.app}">
                         <div class="timeline-indicator ${app.status}"></div>
@@ -1249,9 +1278,10 @@
                     <div class="window">
                         <div class="window-body">
                             <div class="window-placeholder">
-                                <div class="placeholder-icon">📺</div>
-                                <div class="placeholder-text">모니터링할 AI 앱을 선택하세요</div>
-                                <div class="placeholder-hint">"🔍 AI 앱 자동 감지" 버튼을 눌러 실행 중인 앱을 찾으세요</div>
+                                <div class="placeholder-text" style="font-size: 15px; color: var(--text-secondary); line-height: 1.6;">
+                                    AI 도구 실행 시 자동으로 감지해 노출됩니다.<br>
+                                    <span style="color: var(--text-tertiary);">미노출 시 우상단 'AI 감지' 버튼을 클릭하세요.</span>
+                                </div>
                             </div>
                         </div>
                     </div>
