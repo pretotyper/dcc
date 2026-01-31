@@ -1,54 +1,103 @@
-# Kova 동기화 가이드
+# DCC 동기화 가이드
 
-다른 기기에서 Kova를 동기화하고 실행하는 방법
+다른 기기에서 DCC(Kova)를 동기화하고 실행하는 방법
 
-## 방법 1: GitHub 사용 (권장)
+---
 
-### 최초 설정 (현재 기기)
-
-```bash
-# 프로젝트 폴더로 이동
-cd "/Users/jungsoo.kim/Desktop/pretotyper/screen divide"
-
-# Git 초기화
-git init
-
-# 모든 파일 추가
-git add .
-
-# 첫 커밋
-git commit -m "Initial commit: Kova AI Screen Orchestrator"
-
-# GitHub에 새 저장소 생성 후
-git remote add origin https://github.com/YOUR_USERNAME/kova.git
-git branch -M main
-git push -u origin main
-```
-
-### 다른 기기에서 클론
+## 🚀 빠른 시작 (다른 기기에서)
 
 ```bash
-# 저장소 클론
-git clone https://github.com/YOUR_USERNAME/kova.git
-cd kova
+# 1. 저장소 클론
+git clone https://github.com/pretotyper/dcc.git
 
-# 의존성 설치
+# 2. 폴더 이동
+cd dcc
+
+# 3. 의존성 설치
 npm install
 
-# 앱 실행
+# 4. 앱 실행
 npm start
 ```
 
-### 변경사항 동기화
+끝! 앱이 실행됩니다.
 
+---
+
+## 🔄 변경사항 동기화
+
+### 최신 버전 받기 (pull)
 ```bash
-# 현재 기기에서 변경 후
-git add .
-git commit -m "설명"
-git push
-
-# 다른 기기에서 받기
+cd dcc
 git pull
+npm install  # 의존성 변경 시
+npm start
+```
+
+### 변경사항 올리기 (push)
+```bash
+cd dcc
+git add .
+git commit -m "변경 내용 설명"
+git push
+```
+
+### 충돌 발생 시
+```bash
+git pull --rebase
+# 충돌 해결 후
+git add .
+git rebase --continue
+git push
+```
+
+---
+
+## 📱 기기별 작업 흐름
+
+### 기기 A에서 작업 후
+```bash
+git add .
+git commit -m "feat: 새 기능 추가"
+git push
+```
+
+### 기기 B에서 이어서 작업
+```bash
+git pull
+npm start
+# 작업...
+git add .
+git commit -m "fix: 버그 수정"
+git push
+```
+
+### 기기 A에서 다시 받기
+```bash
+git pull
+npm start
+```
+
+---
+
+## 🔐 GitHub 인증
+
+### 처음 push 시
+```bash
+git push -u origin main
+# Username: pretotyper
+# Password: Personal Access Token (비밀번호 아님!)
+```
+
+### Personal Access Token 발급
+1. https://github.com/settings/tokens 접속
+2. "Generate new token (classic)" 클릭
+3. `repo` 권한 체크
+4. 생성된 토큰 복사 → Password에 입력
+
+### 인증 정보 저장 (매번 입력 안하려면)
+```bash
+git config --global credential.helper osxkeychain
 ```
 
 ---
