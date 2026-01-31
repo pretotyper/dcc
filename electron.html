@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kova - AI Screen Orchestrator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', monospace;
+            
+            --bg-primary: #18181b;
+            --bg-surface: #1f1f23;
+            --bg-elevated: #27272a;
+            --bg-hover: #2e2e33;
+            --bg-active: #3f3f46;
+            
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-medium: rgba(255, 255, 255, 0.1);
+            
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-tertiary: #71717a;
+            --text-quaternary: #52525b;
+            
+            --accent: #a78bfa;
+            --accent-soft: rgba(167, 139, 250, 0.1);
+            --status-running: #f59e0b;
+            --status-running-soft: rgba(245, 158, 11, 0.1);
+            --status-done: #22c55e;
+            --status-done-soft: rgba(34, 197, 94, 0.1);
+            
+            --claude: #a78bfa;
+            --gpt: #10b981;
+            --gemini: #3b82f6;
+            --perplexity: #06b6d4;
+            --midjourney: #f59e0b;
+            --notion: #e11d48;
+            
+            --radius-sm: 6px;
+            --radius-md: 8px;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* ========== Header ========== */
+        .header {
+            height: 52px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            padding-left: 80px;
+            gap: 16px;
+            -webkit-app-region: drag;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .logo-icon {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        .header-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border-subtle);
+        }
+        
+        /* Status Queue */
+        .status-queue {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            overflow-x: auto;
+            padding: 4px 0;
+            -webkit-app-region: no-drag;
+        }
+        
+        .status-queue::-webkit-scrollbar { display: none; }
+        
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .queue-item:hover { background: var(--bg-hover); }
+        .queue-item.running {
+            border-color: rgba(245, 158, 11, 0.3);
+            background: var(--status-running-soft);
+        }
+        
+        .queue-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--text-quaternary);
+        }
+        
+        .queue-item.running .queue-dot {
+            background: var(--status-running);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .queue-name { color: var(--text-secondary); }
+        .queue-item.running .queue-name { color: var(--text-primary); }
+        
+        .queue-progress {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--text-tertiary);
+        }
+        
+        .queue-idle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        
+        .queue-idle-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--status-done);
+        }
+        
+        /* Layout Tabs */
+        .layout-tabs {
+            display: flex;
+            gap: 2px;
+            background: var(--bg-elevated);
+            padding: 3px;
+            border-radius: var(--radius-sm);
+            -webkit-app-region: no-drag;
+        }
+        
+        .layout-tab {
+            padding: 6px 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-tertiary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .layout-tab:hover { color: var(--text-secondary); }
+        .layout-tab.active { background: var(--accent-soft); color: var(--accent); }
+        
+        .layout-tab svg { display: block; }
+        
+        .add-ai-btn {
+            -webkit-app-region: no-drag;
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .add-ai-btn:hover { opacity: 0.9; }
+        
+        .scan-btn {
+            -webkit-app-region: no-drag;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-tertiary);
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scan-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .scan-btn.scanning { animation: pulse 1s infinite; }
+        
+        .settings-btn {
+            -webkit-app-region: no-drag;
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        
+        /* Add AI Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+        
+        .modal-overlay.show { display: flex; }
+        
+        .modal {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            width: 400px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title { font-size: 14px; font-weight: 600; }
+        
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .form-input::placeholder { color: var(--text-quaternary); }
+        
+        .color-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .color-option.selected { border-color: white; }
+        
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        /* Detected Apps */
+        .detected-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .detected-title {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detected-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .detected-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+        
+        .detected-item:hover { background: var(--bg-hover); }
+        
+        .detected-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        
+        .detected-name { font-size: 12px; flex: 1; }
+        .detected-add { font-size: 16px; color: var(--text-tertiary); }
+        
+        /* ========== Main ========== */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* ========== Sidebar ========== */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed { width: 0; }
+        
+        .sidebar-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        /* Purpose Dropdown */
+        .purpose-dropdown {
+            position: relative;
+        }
+        
+        .purpose-trigger {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .purpose-trigger:hover { border-color: var(--border-medium); }
+        
+        .purpose-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 4px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .purpose-dropdown.open .purpose-menu { display: block; }
+        
+        .purpose-option {
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .purpose-option:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .purpose-option.active { background: var(--accent-soft); color: var(--accent); }
+        
+        /* Section */
+        .section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-quaternary);
+            margin-bottom: 8px;
+        }
+        
+        /* Timeline */
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .scope-toggle {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .scope-btn {
+            padding: 3px 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-quaternary);
+            font-size: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .scope-btn:hover { color: var(--text-tertiary); }
+        .scope-btn.active { background: var(--bg-active); color: var(--text-primary); }
+        
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .timeline-item:hover { background: var(--bg-hover); }
+        .timeline-item.active { background: var(--accent-soft); }
+        
+        .timeline-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-quaternary);
+        }
+        
+        .timeline-indicator.running { background: var(--status-running); }
+        .timeline-indicator.done { background: var(--status-done); }
+        
+        .timeline-info { flex: 1; min-width: 0; }
+        .timeline-name { font-size: 12px; font-weight: 500; }
+        .timeline-task { font-size: 10px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .timeline-time { font-size: 10px; color: var(--text-quaternary); }
+        
+        /* Actions */
+        .actions-section {
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .action-primary {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .action-primary:hover { background: var(--bg-hover); }
+        
+        .action-primary kbd {
+            background: var(--bg-active);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+        }
+        
+        .action-hint {
+            font-size: 10px;
+            color: var(--text-quaternary);
+            text-align: center;
+        }
+        
+        /* ========== Workspace ========== */
+        .workspace {
+            flex: 1;
+            display: grid;
+            gap: 1px;
+            background: var(--border-subtle);
+            padding: 1px;
+        }
+        
+        .workspace.layout-focus { grid-template-columns: 1fr; }
+        .workspace.layout-split { grid-template-columns: 1fr 1fr; }
+        .workspace.layout-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .workspace.layout-stack { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+        
+        /* Window */
+        .window {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .window.focused { box-shadow: inset 3px 0 0 var(--accent); }
+        
+        .window-header {
+            height: 36px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+        }
+        
+        .window-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .app-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+        
+        .app-dot.claude { background: var(--claude); }
+        .app-dot.gpt { background: var(--gpt); }
+        .app-dot.gemini { background: var(--gemini); }
+        .app-dot.perplexity { background: var(--perplexity); }
+        .app-dot.midjourney { background: var(--midjourney); }
+        .app-dot.notion { background: var(--notion); }
+        .app-dot.custom { background: var(--app-custom-color, var(--accent)); }
+        
+        .window-name { font-size: 12px; font-weight: 500; }
+        
+        .window-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: var(--text-quaternary);
+        }
+        
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+        
+        .status-dot.running { background: var(--status-running); }
+        .status-dot.done { background: var(--status-done); }
+        .status-dot.idle { background: var(--text-quaternary); }
+        
+        .window-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        
+        .window:hover .window-actions { opacity: 1; }
+        
+        .window-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-tertiary);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .window-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        
+        /* Webview */
+        .window-body {
+            flex: 1;
+            position: relative;
+        }
+        
+        webview {
+            width: 100%;
+            height: 100%;
+            background: white;
+        }
+        
+        .window-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--bg-elevated);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--status-done);
+            transition: width 0.3s ease;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-elevated);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .loading-overlay.hidden { display: none; }
+        
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-subtle);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .loading-text { font-size: 12px; color: var(--text-tertiary); }
+        
+        /* ========== Settings Panel ========== */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 200;
+        }
+        
+        .settings-overlay.show { opacity: 1; visibility: visible; }
+        
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 300px;
+            height: 100%;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-subtle);
+            transition: right 0.25s ease;
+            z-index: 201;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .settings-panel.show { right: 0; }
+        
+        .lang-options {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .lang-btn {
+            flex: 1;
+            padding: 10px 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .lang-btn:hover { border-color: var(--border-medium); }
+        .lang-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+        
+        .settings-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .settings-title { font-size: 14px; font-weight: 600; }
+        
+        .settings-close {
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 20px;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-close:hover { background: var(--bg-hover); }
+        
+        .settings-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .settings-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-quaternary);
+            margin-bottom: 12px;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        
+        .setting-label { font-size: 12px; color: var(--text-secondary); }
+        
+        .toggle {
+            width: 36px;
+            height: 20px;
+            background: var(--bg-active);
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: var(--text-tertiary);
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        
+        .setting-row input { display: none; }
+        .setting-row input:checked + .toggle { background: var(--accent); }
+        .setting-row input:checked + .toggle::before { transform: translateX(16px); background: white; }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .toast {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.2s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Fold Toggle */
+        .fold-toggle {
+            position: absolute;
+            left: 240px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 40px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-left: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-quaternary);
+            font-size: 10px;
+            z-index: 50;
+        }
+        
+        .fold-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .sidebar.collapsed + .fold-toggle { left: 0; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">K</div>
+                <span>Kova</span>
+            </div>
+            
+            <div class="header-divider"></div>
+            
+            <div class="status-queue" id="statusQueue">
+                <!-- Rendered dynamically -->
+            </div>
+            
+            <div class="layout-tabs">
+                <button class="layout-tab" data-layout="focus" title="Focus">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="layout-tab active" data-layout="split" title="Split">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="1" y="1" width="5" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="8" y="1" width="5" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="layout-tab" data-layout="grid" title="Grid">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="layout-tab" data-layout="stack" title="Stack">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="1" y="1" width="7" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="10" y="1" width="3" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="10" y="8" width="3" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <button class="add-ai-btn" id="addAiBtn">+ AI 추가</button>
+            <button class="scan-btn" id="scanBtn" title="AI 앱 자동 감지">🔍</button>
+            <button class="settings-btn" id="settingsBtn">⚙</button>
+        </header>
+        
+        <main class="main">
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-content">
+                    <!-- Purpose -->
+                    <div class="purpose-dropdown" id="purposeDropdown">
+                        <div class="purpose-trigger" id="purposeTrigger">
+                            <span id="purposeLabel">리서치</span>
+                            <span>▾</span>
+                        </div>
+                        <div class="purpose-menu">
+                            <div class="purpose-option" data-purpose="all">전체</div>
+                            <div class="purpose-option active" data-purpose="research">리서치</div>
+                            <div class="purpose-option" data-purpose="coding">코딩</div>
+                            <div class="purpose-option" data-purpose="creative">크리에이티브</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline -->
+                    <div class="timeline-section">
+                        <div class="timeline-header">
+                            <span class="section-title">타임라인</span>
+                            <div class="scope-toggle">
+                                <button class="scope-btn active" data-scope="purpose" id="scopePurpose">리서치</button>
+                                <button class="scope-btn" data-scope="all">All</button>
+                            </div>
+                        </div>
+                        <div class="timeline-list" id="timelineList">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="actions-section">
+                        <button class="action-primary" id="transferBtn">
+                            <span>결과 복사</span>
+                            <kbd>⌘T</kbd>
+                        </button>
+                        <div class="action-hint">붙여넣기: ⌘⇧V</div>
+                    </div>
+                </div>
+            </aside>
+            
+            <button class="fold-toggle" id="foldToggle">‹</button>
+            
+            <div class="workspace layout-split" id="workspace">
+                <!-- Windows rendered here -->
+            </div>
+        </main>
+    </div>
+    
+    <!-- Settings Panel -->
+    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <span class="settings-title">설정</span>
+            <button class="settings-close" id="settingsClose">×</button>
+        </div>
+        <div class="settings-body">
+            <div class="settings-section">
+                <div class="settings-section-title">언어</div>
+                <div class="lang-options">
+                    <button class="lang-btn active" data-lang="ko">한국어</button>
+                    <button class="lang-btn" data-lang="en">English</button>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <div class="settings-section-title">동작</div>
+                <div class="setting-row">
+                    <span class="setting-label">완료 알림</span>
+                    <label><input type="checkbox" id="notifyComplete" checked><span class="toggle"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">자동 포커스</span>
+                    <label><input type="checkbox" id="autoFocus"><span class="toggle"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">진행률 표시</span>
+                    <label><input type="checkbox" id="showProgress" checked><span class="toggle"></span></label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Add AI Modal -->
+    <div class="modal-overlay" id="addAiModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">AI 앱 추가</span>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">이름</label>
+                    <input type="text" class="form-input" id="newAppName" placeholder="예: Grok">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL</label>
+                    <input type="text" class="form-input" id="newAppUrl" placeholder="https://grok.x.ai">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">색상</label>
+                    <div class="color-options" id="colorOptions">
+                        <div class="color-option selected" data-color="#a78bfa" style="background: #a78bfa"></div>
+                        <div class="color-option" data-color="#10b981" style="background: #10b981"></div>
+                        <div class="color-option" data-color="#3b82f6" style="background: #3b82f6"></div>
+                        <div class="color-option" data-color="#f59e0b" style="background: #f59e0b"></div>
+                        <div class="color-option" data-color="#ef4444" style="background: #ef4444"></div>
+                        <div class="color-option" data-color="#ec4899" style="background: #ec4899"></div>
+                        <div class="color-option" data-color="#06b6d4" style="background: #06b6d4"></div>
+                        <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6"></div>
+                    </div>
+                </div>
+                
+                <div class="detected-section" id="detectedSection" style="display: none;">
+                    <div class="detected-title">감지된 AI 앱</div>
+                    <div class="detected-list" id="detectedList">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modalCancel">취소</button>
+                <button class="btn btn-primary" id="modalAdd">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== i18n ==========
+        const i18n = {
+            ko: {
+                all: '전체', research: '리서치', coding: '코딩', creative: '크리에이티브',
+                running: '실행 중', done: '완료', idle: '대기', ready: '준비됨',
+                allReady: '모든 AI 어시스턴트 준비됨'
+            },
+            en: {
+                all: 'All', research: 'Research', coding: 'Coding', creative: 'Creative',
+                running: 'Running', done: 'Done', idle: 'Idle', ready: 'Ready',
+                allReady: 'All AI assistants ready'
+            }
+        };
+        
+        // ========== State ==========
+        const state = {
+            lang: 'ko',
+            currentPurpose: 'research',
+            currentLayout: 'split',
+            timelineScope: 'purpose',
+            focusedApp: 'claude',
+            lastCopied: null,  // { from: appKey, content: string }
+            settings: { notifyComplete: true, autoFocus: false, showProgress: true },
+            apps: {
+                claude: { name: 'Claude', url: 'https://claude.ai', color: 'claude', status: 'running', progress: 65 },
+                gpt: { name: 'ChatGPT', url: 'https://chat.openai.com', color: 'gpt', status: 'running', progress: 35 },
+                gemini: { name: 'Gemini', url: 'https://gemini.google.com', color: 'gemini', status: 'idle', progress: 0 },
+                perplexity: { name: 'Perplexity', url: 'https://perplexity.ai', color: 'perplexity', status: 'done', progress: 100 },
+                midjourney: { name: 'Midjourney', url: 'https://midjourney.com', color: 'midjourney', status: 'idle', progress: 0 },
+                notion: { name: 'Notion AI', url: 'https://notion.so', color: 'notion', status: 'idle', progress: 0 }
+            },
+            purposes: {
+                all: { apps: ['claude', 'gpt', 'gemini', 'perplexity', 'midjourney', 'notion'] },
+                research: { apps: ['claude', 'gpt', 'gemini', 'perplexity'] },
+                coding: { apps: ['claude', 'gpt', 'gemini', 'notion'] },
+                creative: { apps: ['gpt', 'midjourney', 'claude', 'notion'] }
+            },
+            layouts: {
+                focus: 1, split: 2, grid: 4, stack: 3
+            },
+            timeline: [
+                { app: 'claude', task: '브랜드 스토리 작성', time: '2분 전' },
+                { app: 'gpt', task: '이미지 프롬프트 작성', time: '1분 전' },
+                { app: 'gemini', task: '시장 트렌드 분석', time: '30초 전' },
+                { app: 'perplexity', task: '최신 AI 뉴스', time: '방금' }
+            ]
+        };
+        
+        function t(key) { return i18n[state.lang][key] || key; }
+        
+        // ========== Render Functions ==========
+        function renderStatusQueue() {
+            const container = document.getElementById('statusQueue');
+            const runningApps = Object.entries(state.apps).filter(([_, app]) => app.status === 'running');
+            
+            if (runningApps.length === 0) {
+                container.innerHTML = `
+                    <div class="queue-idle">
+                        <div class="queue-idle-dot"></div>
+                        <span>${t('allReady')}</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = runningApps.map(([key, app]) => `
+                <div class="queue-item running" data-app="${key}">
+                    <div class="queue-dot"></div>
+                    <span class="queue-name">${app.name}</span>
+                    <span class="queue-progress">${Math.round(app.progress)}%</span>
+                </div>
+            `).join('');
+        }
+        
+        function renderTimeline() {
+            const container = document.getElementById('timelineList');
+            const purposeApps = state.purposes[state.currentPurpose].apps;
+            
+            let items = state.timeline;
+            if (state.timelineScope === 'purpose') {
+                items = items.filter(item => purposeApps.includes(item.app));
+            }
+            
+            container.innerHTML = items.map(item => {
+                const app = state.apps[item.app];
+                return `
+                    <div class="timeline-item ${state.focusedApp === item.app ? 'active' : ''}" data-app="${item.app}">
+                        <div class="timeline-indicator ${app.status}"></div>
+                        <div class="timeline-info">
+                            <div class="timeline-name">${app.name}</div>
+                            <div class="timeline-task">${item.task}</div>
+                        </div>
+                        <span class="timeline-time">${item.time}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderWorkspace() {
+            const workspace = document.getElementById('workspace');
+            workspace.className = `workspace layout-${state.currentLayout}`;
+            
+            const count = state.layouts[state.currentLayout];
+            const purposeApps = state.purposes[state.currentPurpose].apps;
+            const appsToShow = purposeApps.slice(0, count);
+            
+            workspace.innerHTML = appsToShow.map(key => {
+                const app = state.apps[key];
+                const showProgress = state.settings.showProgress && app.status === 'running';
+                
+                return `
+                    <div class="window ${state.focusedApp === key ? 'focused' : ''}" data-app="${key}">
+                        <div class="window-header">
+                            <div class="window-title">
+                                <div class="app-dot ${app.color}" style="${app.customColor ? `background: ${app.customColor}` : ''}"></div>
+                                <span class="window-name">${app.name}</span>
+                            </div>
+                            <div class="window-status">
+                                <div class="status-dot ${app.status}"></div>
+                                <span>${t(app.status === 'running' ? 'running' : app.status === 'done' ? 'done' : 'idle')}</span>
+                            </div>
+                            <div class="window-actions">
+                                <button class="window-btn reload-btn" data-app="${key}" title="새로고침">⟳</button>
+                                <button class="window-btn open-btn" data-app="${key}" title="새 창에서 열기">↗</button>
+                            </div>
+                        </div>
+                        <div class="window-body">
+                            <webview src="${app.url}" data-app="${key}"></webview>
+                            <div class="loading-overlay" id="loading-${key}">
+                                <div class="loading-spinner"></div>
+                                <div class="loading-text">${app.name} 로딩 중...</div>
+                            </div>
+                            ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:${app.progress}%"></div></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Webview events
+            document.querySelectorAll('webview').forEach(wv => {
+                const appKey = wv.dataset.app;
+                const loading = document.getElementById(`loading-${appKey}`);
+                
+                wv.addEventListener('did-start-loading', () => loading?.classList.remove('hidden'));
+                wv.addEventListener('did-stop-loading', () => loading?.classList.add('hidden'));
+            });
+        }
+        
+        function render() {
+            renderStatusQueue();
+            renderTimeline();
+            renderWorkspace();
+        }
+        
+        // ========== Event Handlers ==========
+        // Purpose dropdown
+        const purposeDropdown = document.getElementById('purposeDropdown');
+        const purposeTrigger = document.getElementById('purposeTrigger');
+        
+        purposeTrigger.addEventListener('click', () => purposeDropdown.classList.toggle('open'));
+        
+        document.querySelectorAll('.purpose-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                state.currentPurpose = opt.dataset.purpose;
+                document.querySelectorAll('.purpose-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                document.getElementById('purposeLabel').textContent = opt.textContent;
+                document.getElementById('scopePurpose').textContent = opt.textContent;
+                purposeDropdown.classList.remove('open');
+                render();
+                saveSettings();
+            });
+        });
+        
+        document.addEventListener('click', e => {
+            if (!purposeDropdown.contains(e.target)) purposeDropdown.classList.remove('open');
+        });
+        
+        // Layout tabs
+        document.querySelectorAll('.layout-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.layout-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.currentLayout = tab.dataset.layout;
+                renderWorkspace();
+                saveSettings();
+            });
+        });
+        
+        // Scope toggle
+        document.querySelectorAll('.scope-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.timelineScope = btn.dataset.scope;
+                renderTimeline();
+            });
+        });
+        
+        // Timeline clicks
+        document.getElementById('timelineList').addEventListener('click', e => {
+            const item = e.target.closest('.timeline-item');
+            if (item) {
+                state.focusedApp = item.dataset.app;
+                render();
+            }
+        });
+        
+        // Workspace clicks
+        document.getElementById('workspace').addEventListener('click', e => {
+            const reloadBtn = e.target.closest('.reload-btn');
+            if (reloadBtn) {
+                const wv = document.querySelector(`webview[data-app="${reloadBtn.dataset.app}"]`);
+                if (wv) wv.reload();
+                return;
+            }
+            
+            const openBtn = e.target.closest('.open-btn');
+            if (openBtn) {
+                const app = state.apps[openBtn.dataset.app];
+                if (app) require('electron').shell.openExternal(app.url);
+                return;
+            }
+            
+            const window = e.target.closest('.window');
+            if (window && !e.target.closest('.window-actions')) {
+                state.focusedApp = window.dataset.app;
+                document.querySelectorAll('.window').forEach(w => w.classList.toggle('focused', w.dataset.app === state.focusedApp));
+                document.querySelectorAll('.timeline-item').forEach(i => i.classList.toggle('active', i.dataset.app === state.focusedApp));
+            }
+        });
+        
+        // Status queue clicks
+        document.getElementById('statusQueue').addEventListener('click', e => {
+            const item = e.target.closest('.queue-item');
+            if (item) {
+                state.focusedApp = item.dataset.app;
+                render();
+            }
+        });
+        
+        // Fold toggle
+        const sidebar = document.getElementById('sidebar');
+        const foldToggle = document.getElementById('foldToggle');
+        
+        foldToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            foldToggle.textContent = sidebar.classList.contains('collapsed') ? '›' : '‹';
+        });
+        
+        // Settings
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.add('show');
+            document.getElementById('settingsOverlay').classList.add('show');
+        });
+        
+        document.getElementById('settingsClose').addEventListener('click', closeSettings);
+        document.getElementById('settingsOverlay').addEventListener('click', closeSettings);
+        
+        function closeSettings() {
+            document.getElementById('settingsPanel').classList.remove('show');
+            document.getElementById('settingsOverlay').classList.remove('show');
+        }
+        
+        // Language
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.lang = btn.dataset.lang;
+                render();
+                saveSettings();
+            });
+        });
+        
+        // Settings toggles
+        ['notifyComplete', 'autoFocus', 'showProgress'].forEach(id => {
+            document.getElementById(id).addEventListener('change', e => {
+                state.settings[id] = e.target.checked;
+                if (id === 'showProgress') renderWorkspace();
+                saveSettings();
+            });
+        });
+        
+        // Transfer - AI 결과 복사
+        document.getElementById('transferBtn').addEventListener('click', async () => {
+            const focusedWebview = document.querySelector(`.window.focused webview`);
+            if (!focusedWebview) {
+                toast('⚠', '먼저 창을 선택하세요');
+                return;
+            }
+            
+            const appKey = focusedWebview.dataset.app;
+            const app = state.apps[appKey];
+            
+            // 각 서비스별 결과 추출 selector
+            const selectors = {
+                claude: '.font-claude-message, [class*="prose"], .whitespace-pre-wrap',
+                gpt: '[data-message-author-role="assistant"] .markdown, .result-streaming',
+                gemini: '.response-container, .model-response-text',
+                perplexity: '.prose, .answer-text',
+                notion: '.notion-page-content',
+                midjourney: '.imageContainer img'
+            };
+            
+            try {
+                const selector = selectors[appKey] || 'body';
+                const script = `
+                    (function() {
+                        const elements = document.querySelectorAll('${selector}');
+                        if (elements.length > 0) {
+                            const lastEl = elements[elements.length - 1];
+                            return lastEl.innerText || lastEl.src || '';
+                        }
+                        return '';
+                    })()
+                `;
+                
+                const result = await focusedWebview.executeJavaScript(script);
+                
+                if (result && result.trim()) {
+                    // 클립보드에 복사
+                    await navigator.clipboard.writeText(result.trim());
+                    state.lastCopied = { from: appKey, content: result.trim() };
+                    toast('📋', `${app.name} 결과 복사됨`);
+                } else {
+                    toast('⚠', '복사할 결과가 없습니다');
+                }
+            } catch (e) {
+                console.error(e);
+                toast('⚠', '결과를 가져올 수 없습니다');
+            }
+        });
+        
+        // 결과 복사 단축키 (Cmd+T)
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 't') {
+                e.preventDefault();
+                document.getElementById('transferBtn').click();
+            }
+        });
+        
+        // AI to AI 전송 (Cmd+Shift+V)
+        document.addEventListener('keydown', async (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+                e.preventDefault();
+                
+                if (!state.lastCopied) {
+                    toast('⚠', '먼저 결과를 복사하세요 (⌘T)');
+                    return;
+                }
+                
+                const focusedWebview = document.querySelector(`.window.focused webview`);
+                if (!focusedWebview) {
+                    toast('⚠', '붙여넣을 창을 선택하세요');
+                    return;
+                }
+                
+                const appKey = focusedWebview.dataset.app;
+                const app = state.apps[appKey];
+                
+                // 각 서비스별 입력창 selector
+                const inputSelectors = {
+                    claude: '[contenteditable="true"], textarea',
+                    gpt: '#prompt-textarea, textarea',
+                    gemini: '[contenteditable="true"], textarea',
+                    perplexity: 'textarea',
+                    notion: '[contenteditable="true"]'
+                };
+                
+                try {
+                    const selector = inputSelectors[appKey] || 'textarea, [contenteditable="true"]';
+                    const script = `
+                        (function() {
+                            const input = document.querySelector('${selector}');
+                            if (input) {
+                                if (input.tagName === 'TEXTAREA') {
+                                    input.value = ${JSON.stringify(state.lastCopied.content)};
+                                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                                } else {
+                                    input.innerText = ${JSON.stringify(state.lastCopied.content)};
+                                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                                }
+                                input.focus();
+                                return true;
+                            }
+                            return false;
+                        })()
+                    `;
+                    
+                    const success = await focusedWebview.executeJavaScript(script);
+                    
+                    if (success) {
+                        toast('↗', `${state.apps[state.lastCopied.from].name} → ${app.name}`);
+                    } else {
+                        toast('⚠', '입력창을 찾을 수 없습니다');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    toast('⚠', '붙여넣기 실패');
+                }
+            }
+        });
+        
+        // ========== Toast ==========
+        function toast(icon, message) {
+            const container = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            container.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+        
+        // ========== Progress Simulation ==========
+        function startSimulation() {
+            setInterval(() => {
+                Object.entries(state.apps).forEach(([key, app]) => {
+                    if (app.status === 'running') {
+                        app.progress = Math.min(app.progress + Math.random() * 2, 100);
+                        if (app.progress >= 100) {
+                            app.status = 'done';
+                            if (state.settings.notifyComplete) toast('✓', `${app.name} 완료`);
+                        }
+                        
+                        const bar = document.querySelector(`.window[data-app="${key}"] .progress-bar`);
+                        if (bar) bar.style.width = app.progress + '%';
+                    }
+                });
+                renderStatusQueue();
+            }, 500);
+        }
+        
+        // ========== Persistence ==========
+        function saveSettings() {
+            localStorage.setItem('kova-electron', JSON.stringify({
+                lang: state.lang,
+                currentPurpose: state.currentPurpose,
+                currentLayout: state.currentLayout,
+                settings: state.settings
+            }));
+        }
+        
+        function loadSettings() {
+            const saved = localStorage.getItem('kova-electron');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.lang) state.lang = data.lang;
+                    if (data.currentPurpose) state.currentPurpose = data.currentPurpose;
+                    if (data.currentLayout) state.currentLayout = data.currentLayout;
+                    Object.assign(state.settings, data.settings);
+                    
+                    // Apply to UI
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === state.lang));
+                    document.querySelectorAll('.layout-tab').forEach(t => t.classList.toggle('active', t.dataset.layout === state.currentLayout));
+                    document.querySelectorAll('.purpose-option').forEach(o => {
+                        const active = o.dataset.purpose === state.currentPurpose;
+                        o.classList.toggle('active', active);
+                        if (active) {
+                            document.getElementById('purposeLabel').textContent = o.textContent;
+                            document.getElementById('scopePurpose').textContent = o.textContent;
+                        }
+                    });
+                    ['notifyComplete', 'autoFocus', 'showProgress'].forEach(id => {
+                        document.getElementById(id).checked = state.settings[id];
+                    });
+                } catch (e) {}
+            }
+        }
+        
+        // ========== Add AI Modal ==========
+        const { ipcRenderer } = require('electron');
+        
+        const addAiModal = document.getElementById('addAiModal');
+        let selectedColor = '#a78bfa';
+        
+        // 알려진 AI 서비스 매핑
+        const knownAiApps = {
+            'Claude': { url: 'https://claude.ai', color: '#a78bfa' },
+            'ChatGPT': { url: 'https://chat.openai.com', color: '#10b981' },
+            'Gemini': { url: 'https://gemini.google.com', color: '#3b82f6' },
+            'Perplexity': { url: 'https://perplexity.ai', color: '#06b6d4' },
+            'Grok': { url: 'https://grok.x.ai', color: '#ef4444' },
+            'Copilot': { url: 'https://copilot.microsoft.com', color: '#3b82f6' },
+            'Pi': { url: 'https://pi.ai', color: '#f59e0b' },
+            'Poe': { url: 'https://poe.com', color: '#8b5cf6' },
+            'HuggingChat': { url: 'https://huggingface.co/chat', color: '#f59e0b' },
+            'Midjourney': { url: 'https://midjourney.com', color: '#f59e0b' },
+            'DALL-E': { url: 'https://labs.openai.com', color: '#10b981' },
+            'Stable Diffusion': { url: 'https://stability.ai', color: '#8b5cf6' },
+            'Runway': { url: 'https://runway.ml', color: '#06b6d4' },
+            'Notion': { url: 'https://notion.so', color: '#e11d48' }
+        };
+        
+        // AI 관련 키워드
+        const aiKeywords = ['Claude', 'ChatGPT', 'GPT', 'Gemini', 'Perplexity', 'Grok', 'Copilot', 
+                           'AI', 'Chat', 'Assistant', 'Midjourney', 'DALL', 'Stable', 'Runway',
+                           'Notion', 'Pi', 'Poe', 'Hugging'];
+        
+        document.getElementById('addAiBtn').addEventListener('click', () => {
+            addAiModal.classList.add('show');
+        });
+        
+        document.getElementById('modalClose').addEventListener('click', closeModal);
+        document.getElementById('modalCancel').addEventListener('click', closeModal);
+        addAiModal.addEventListener('click', (e) => {
+            if (e.target === addAiModal) closeModal();
+        });
+        
+        function closeModal() {
+            addAiModal.classList.remove('show');
+            document.getElementById('newAppName').value = '';
+            document.getElementById('newAppUrl').value = '';
+        }
+        
+        // 색상 선택
+        document.getElementById('colorOptions').addEventListener('click', (e) => {
+            const option = e.target.closest('.color-option');
+            if (option) {
+                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedColor = option.dataset.color;
+            }
+        });
+        
+        // 앱 추가
+        document.getElementById('modalAdd').addEventListener('click', () => {
+            const name = document.getElementById('newAppName').value.trim();
+            const url = document.getElementById('newAppUrl').value.trim();
+            
+            if (!name || !url) {
+                toast('⚠', '이름과 URL을 입력하세요');
+                return;
+            }
+            
+            addNewApp(name, url, selectedColor);
+            closeModal();
+        });
+        
+        function addNewApp(name, url, color) {
+            const key = name.toLowerCase().replace(/\s+/g, '');
+            
+            // 이미 존재하는지 확인
+            if (state.apps[key]) {
+                toast('⚠', '이미 추가된 앱입니다');
+                return;
+            }
+            
+            // 새 앱 추가
+            state.apps[key] = {
+                name: name,
+                url: url.startsWith('http') ? url : 'https://' + url,
+                color: 'custom',
+                customColor: color,
+                status: 'idle',
+                progress: 0
+            };
+            
+            // 모든 purpose에 추가
+            Object.values(state.purposes).forEach(p => {
+                if (!p.apps.includes(key)) p.apps.push(key);
+            });
+            
+            // 타임라인에 추가
+            state.timeline.unshift({
+                app: key,
+                task: '새로 추가됨',
+                time: '방금'
+            });
+            
+            // CSS 변수 추가
+            document.documentElement.style.setProperty(`--${key}`, color);
+            
+            toast('✓', `${name} 추가됨`);
+            render();
+            saveSettings();
+        }
+        
+        // 자동 감지
+        document.getElementById('scanBtn').addEventListener('click', async () => {
+            const scanBtn = document.getElementById('scanBtn');
+            scanBtn.classList.add('scanning');
+            toast('🔍', '실행 중인 AI 앱 검색 중...');
+            
+            try {
+                const [runningApps, safariTabs, chromeTabs] = await Promise.all([
+                    ipcRenderer.invoke('get-running-apps'),
+                    ipcRenderer.invoke('get-safari-tabs'),
+                    ipcRenderer.invoke('get-chrome-tabs')
+                ]);
+                
+                const detected = [];
+                
+                // 실행 중인 앱에서 AI 찾기
+                runningApps.forEach(app => {
+                    if (aiKeywords.some(kw => app.toLowerCase().includes(kw.toLowerCase()))) {
+                        if (knownAiApps[app]) {
+                            detected.push({ name: app, ...knownAiApps[app], source: 'app' });
+                        }
+                    }
+                });
+                
+                // 브라우저 탭에서 AI 찾기
+                const tabPatterns = [
+                    { pattern: /claude\.ai/i, name: 'Claude' },
+                    { pattern: /chat\.openai\.com/i, name: 'ChatGPT' },
+                    { pattern: /gemini\.google\.com/i, name: 'Gemini' },
+                    { pattern: /perplexity\.ai/i, name: 'Perplexity' },
+                    { pattern: /grok\.x\.ai/i, name: 'Grok' },
+                    { pattern: /copilot\.microsoft\.com/i, name: 'Copilot' },
+                    { pattern: /midjourney\.com/i, name: 'Midjourney' },
+                    { pattern: /poe\.com/i, name: 'Poe' },
+                    { pattern: /huggingface\.co\/chat/i, name: 'HuggingChat' }
+                ];
+                
+                const allTabs = safariTabs + chromeTabs;
+                tabPatterns.forEach(({ pattern, name }) => {
+                    if (pattern.test(allTabs) && knownAiApps[name]) {
+                        if (!detected.find(d => d.name === name)) {
+                            detected.push({ name, ...knownAiApps[name], source: 'browser' });
+                        }
+                    }
+                });
+                
+                // 아직 추가 안 된 것만 필터링
+                const newApps = detected.filter(d => !state.apps[d.name.toLowerCase().replace(/\s+/g, '')]);
+                
+                if (newApps.length > 0) {
+                    showDetectedApps(newApps);
+                    toast('✓', `${newApps.length}개 AI 앱 발견`);
+                } else {
+                    toast('ℹ', '새로운 AI 앱을 찾지 못했습니다');
+                }
+                
+            } catch (e) {
+                console.error(e);
+                toast('⚠', '앱 감지 실패');
+            }
+            
+            scanBtn.classList.remove('scanning');
+        });
+        
+        function showDetectedApps(apps) {
+            const section = document.getElementById('detectedSection');
+            const list = document.getElementById('detectedList');
+            
+            list.innerHTML = apps.map(app => `
+                <div class="detected-item" data-name="${app.name}" data-url="${app.url}" data-color="${app.color}">
+                    <div class="detected-icon" style="background: ${app.color}">${app.name.charAt(0)}</div>
+                    <span class="detected-name">${app.name}</span>
+                    <span class="detected-source">${app.source === 'browser' ? '🌐' : '💻'}</span>
+                    <span class="detected-add">+</span>
+                </div>
+            `).join('');
+            
+            section.style.display = 'block';
+            addAiModal.classList.add('show');
+            
+            // 클릭 이벤트
+            list.querySelectorAll('.detected-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    addNewApp(item.dataset.name, item.dataset.url, item.dataset.color);
+                    item.remove();
+                    if (list.children.length === 0) {
+                        section.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // ========== Init ==========
+        loadSettings();
+        render();
+        startSimulation();
+    </script>
+</body>
+</html>

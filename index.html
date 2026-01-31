@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kova</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">K</div>
+            <span class="brand">Kova</span>
+        </div>
+        
+        <div class="header-center">
+            <div class="status-queue-wrapper" id="statusQueueWrapper">
+                <div class="status-queue" id="statusQueue">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <div class="layout-bar">
+                <button class="layout-btn" data-layout="focus" title="Focus">
+                    <svg width="14" height="14" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/></svg>
+                </button>
+                <button class="layout-btn active" data-layout="split" title="Split">
+                    <svg width="14" height="14" viewBox="0 0 16 16"><rect x="2" y="3" width="5" height="10" rx="1.5" fill="currentColor"/><rect x="9" y="3" width="5" height="10" rx="1.5" fill="currentColor"/></svg>
+                </button>
+                <button class="layout-btn" data-layout="grid" title="Grid">
+                    <svg width="14" height="14" viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor"/></svg>
+                </button>
+                <button class="layout-btn" data-layout="stack" title="Stack">
+                    <svg width="14" height="14" viewBox="0 0 16 16"><rect x="2" y="2" width="8" height="12" rx="1.5" fill="currentColor"/><rect x="12" y="2" width="2" height="5" rx="0.75" fill="currentColor"/><rect x="12" y="9" width="2" height="5" rx="0.75" fill="currentColor"/></svg>
+                </button>
+            </div>
+            <button class="icon-btn" id="settingsBtn">⚙</button>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Purpose Dropdown -->
+            <div class="purpose-section">
+                <div class="purpose-dropdown" id="purposeDropdown">
+                    <button class="purpose-trigger" id="purposeTrigger">
+                        <span id="purposeLabel">리서치</span>
+                        <span class="purpose-trigger-arrow">▾</span>
+                    </button>
+                    <div class="purpose-menu" id="purposeMenu">
+                        <div class="purpose-option" data-purpose="all">
+                            <span data-i18n="all">전체</span>
+                        </div>
+                        <div class="purpose-option active" data-purpose="research">
+                            <span data-i18n="research">리서치</span>
+                        </div>
+                        <div class="purpose-option" data-purpose="coding">
+                            <span data-i18n="coding">코딩</span>
+                        </div>
+                        <div class="purpose-option" data-purpose="creative">
+                            <span data-i18n="creative">크리에이티브</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Timeline -->
+            <div class="timeline-section">
+                <div class="section-header">
+                    <span class="section-title" data-i18n="activity">타임라인</span>
+                    <div class="scope-toggle" id="scopeToggle">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+                <div class="timeline-list" id="timelineList"></div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="actions-section">
+                <button class="action-primary" id="transferBtn">
+                    <span data-i18n="transfer">결과 복사</span>
+                    <kbd>⌘T</kbd>
+                </button>
+                <button class="action-sm" id="refreshBtn" data-i18n="refresh">새로고침</button>
+            </div>
+            
+            <!-- Resize Handle -->
+            <div class="resize-handle" id="resizeHandle"></div>
+            
+            <!-- Fold Toggle -->
+            <button class="fold-toggle" id="foldToggle" title="사이드바 접기 (⌘[)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </aside>
+        
+        <!-- Unfold Button (shown when collapsed) -->
+        <button class="unfold-toggle" id="unfoldToggle" title="사이드바 펼치기 (⌘[)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+
+        <!-- Workspace -->
+        <div class="workspace" id="workspace"></div>
+    </main>
+
+    <!-- Settings Panel -->
+    <div class="panel-overlay" id="settingsOverlay"></div>
+    <aside class="settings-panel" id="settingsPanel">
+        <div class="panel-header">
+            <h2 data-i18n="settings">설정</h2>
+            <button class="close-btn" id="closeSettings">✕</button>
+        </div>
+        <div class="panel-body">
+            <!-- Language -->
+            <div class="setting-group">
+                <div class="setting-title" data-i18n="language">언어</div>
+                <div class="lang-options">
+                    <button class="lang-btn active" data-lang="ko">한국어</button>
+                    <button class="lang-btn" data-lang="en">English</button>
+                </div>
+            </div>
+            
+            <!-- Apps -->
+            <div class="setting-group">
+                <div class="setting-title" data-i18n="apps">앱 관리</div>
+                <div class="app-list" id="appList"></div>
+            </div>
+            
+            <!-- Behavior -->
+            <div class="setting-group">
+                <div class="setting-title" data-i18n="behavior">동작</div>
+                <label class="setting-row">
+                    <span data-i18n="notifyComplete">완료 알림</span>
+                    <input type="checkbox" id="notifyComplete" checked>
+                    <span class="toggle"></span>
+                </label>
+                <label class="setting-row">
+                    <span data-i18n="autoFocus">자동 포커스</span>
+                    <input type="checkbox" id="autoFocus">
+                    <span class="toggle"></span>
+                </label>
+                <label class="setting-row">
+                    <span data-i18n="showProgress">진행률 표시</span>
+                    <input type="checkbox" id="showProgress" checked>
+                    <span class="toggle"></span>
+                </label>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Transfer Modal -->
+    <div class="panel-overlay" id="transferOverlay"></div>
+    <div class="transfer-modal" id="transferModal">
+        <div class="modal-header">
+            <span data-i18n="transferOutput">결과 전송</span>
+            <kbd>⌘T</kbd>
+        </div>
+        <div class="modal-body">
+            <div class="transfer-col">
+                <div class="col-label" data-i18n="from">보내는 곳</div>
+                <div class="app-options" id="sourceList"></div>
+            </div>
+            <div class="transfer-arrow">→</div>
+            <div class="transfer-col">
+                <div class="col-label" data-i18n="to">받는 곳</div>
+                <div class="app-options" id="targetList"></div>
+            </div>
+        </div>
+        <div class="modal-footer" id="recentTransfers"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastIcon">✓</span>
+        <span id="toastMsg"></span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
