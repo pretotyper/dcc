@@ -814,8 +814,8 @@
         .settings-panel {
             position: fixed;
             top: 0;
-            right: -340px;
-            width: 320px;
+            right: -300px;
+            width: 280px;
             height: 100%;
             background: var(--bg-surface);
             border-left: 1px solid var(--border-subtle);
@@ -823,43 +823,12 @@
             z-index: 201;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
         }
         
         .settings-panel.show { right: 0; }
         
-        .settings-body {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        
-        .lang-options {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .lang-btn {
-            flex: 1;
-            padding: 10px 8px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            font-size: 11px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        
-        .lang-btn:hover { border-color: var(--border-medium); }
-        .lang-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-        
         .settings-header {
-            padding: 16px 20px;
+            padding: 16px;
             border-bottom: 1px solid var(--border-subtle);
             display: flex;
             justify-content: space-between;
@@ -872,72 +841,95 @@
             background: transparent;
             border: none;
             color: var(--text-tertiary);
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
-            width: 28px;
-            height: 28px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 4px 8px;
         }
         
-        .settings-close:hover { background: var(--bg-hover); }
+        .settings-close:hover { color: var(--text-primary); }
+        
+        .settings-body {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+        
+        .settings-section {
+            margin-bottom: 24px;
+        }
         
         .settings-section-title {
-            font-size: 10px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-quaternary);
             margin-bottom: 12px;
         }
         
+        .lang-options {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .lang-btn {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .lang-btn:hover { border-color: var(--border-medium); }
+        .lang-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+        
         .setting-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
         }
+        
+        .setting-row:last-child { border-bottom: none; }
         
         .setting-label { 
             font-size: 13px; 
             color: var(--text-secondary);
-            flex: 1;
         }
         
+        .setting-row input { display: none; }
+        
         .toggle {
-            width: 40px;
-            height: 22px;
-            background: #3f3f46;
-            border: 1px solid #52525b;
-            border-radius: 20px;
+            width: 44px;
+            height: 24px;
+            background: #52525b;
+            border-radius: 12px;
             position: relative;
             cursor: pointer;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
+            transition: background 0.2s ease;
         }
         
         .toggle::before {
             content: '';
             position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 16px;
-            height: 16px;
-            background: #a1a1aa;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
             border-radius: 50%;
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease;
         }
         
-        .setting-row input { display: none; }
         .setting-row input:checked + .toggle { 
             background: var(--accent); 
-            border-color: var(--accent);
         }
+        
         .setting-row input:checked + .toggle::before { 
-            transform: translateX(18px); 
-            background: white; 
+            transform: translateX(20px); 
         }
         
         /* Toast */
@@ -1706,11 +1698,14 @@
                             <div style="font-size: 16px; color: var(--text-primary); margin-bottom: 16px;">
                                 화면 캡처 권한이 필요합니다
                             </div>
-                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 20px;">
-                                1. <strong>시스템 설정</strong> → <strong>개인정보 보호 및 보안</strong><br>
-                                2. <strong>화면 녹화</strong> 클릭<br>
-                                3. <strong>DCC</strong> 앱 활성화<br>
-                                4. DCC 앱 재시작
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 2; margin-bottom: 20px;">
+                                1. 시스템 설정 → 개인정보 보호 및 보안<br>
+                                2. 화면 및 시스템 오디오 녹음 클릭<br>
+                                3. <strong style="color: var(--accent);">Electron</strong> 또는 <strong style="color: var(--accent);">터미널</strong> 활성화<br>
+                                4. 앱 재시작
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-quaternary); margin-bottom: 16px;">
+                                개발 모드에서는 "Electron" 또는 "터미널"로 표시됩니다
                             </div>
                             <button onclick="require('electron').shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')" 
                                     style="background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px;">
