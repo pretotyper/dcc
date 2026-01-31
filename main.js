@@ -55,6 +55,7 @@ tell application "System Events"
                 repeat with t in tabs of w
                     set tabURL to URL of t
                     set tabTitle to title of t
+                    -- Research
                     if tabURL contains "claude.ai" then
                         set end of tabResults to "Claude (Chrome)|" & tabURL
                     else if tabURL contains "chat.openai.com" or tabURL contains "chatgpt.com" then
@@ -67,6 +68,49 @@ tell application "System Events"
                         set end of tabResults to "Grok (Chrome)|" & tabURL
                     else if tabURL contains "copilot.microsoft.com" then
                         set end of tabResults to "Copilot (Chrome)|" & tabURL
+                    else if tabURL contains "poe.com" then
+                        set end of tabResults to "Poe (Chrome)|" & tabURL
+                    -- Creative - Image
+                    else if tabURL contains "midjourney.com" then
+                        set end of tabResults to "Midjourney (Chrome)|" & tabURL
+                    else if tabURL contains "labs.openai.com" or tabURL contains "dall-e" then
+                        set end of tabResults to "DALL-E (Chrome)|" & tabURL
+                    else if tabURL contains "leonardo.ai" then
+                        set end of tabResults to "Leonardo.ai (Chrome)|" & tabURL
+                    else if tabURL contains "ideogram.ai" then
+                        set end of tabResults to "Ideogram (Chrome)|" & tabURL
+                    else if tabURL contains "firefly.adobe.com" then
+                        set end of tabResults to "Adobe Firefly (Chrome)|" & tabURL
+                    -- Creative - Video
+                    else if tabURL contains "nanobanana" then
+                        set end of tabResults to "NanoBanana (Chrome)|" & tabURL
+                    else if tabURL contains "runway" or tabURL contains "runwayml" then
+                        set end of tabResults to "Runway (Chrome)|" & tabURL
+                    else if tabURL contains "pika.art" or tabURL contains "pikalabs" then
+                        set end of tabResults to "Pika (Chrome)|" & tabURL
+                    else if tabURL contains "sora.com" or tabURL contains "openai.com/sora" then
+                        set end of tabResults to "Sora (Chrome)|" & tabURL
+                    else if tabURL contains "klingai" or tabURL contains "kling.kuaishou" then
+                        set end of tabResults to "Kling (Chrome)|" & tabURL
+                    else if tabURL contains "lumalabs" or tabURL contains "luma.ai" then
+                        set end of tabResults to "Luma (Chrome)|" & tabURL
+                    else if tabURL contains "heygen" then
+                        set end of tabResults to "HeyGen (Chrome)|" & tabURL
+                    else if tabURL contains "synthesia" then
+                        set end of tabResults to "Synthesia (Chrome)|" & tabURL
+                    else if tabURL contains "invideo" then
+                        set end of tabResults to "InVideo (Chrome)|" & tabURL
+                    else if tabURL contains "descript" then
+                        set end of tabResults to "Descript (Chrome)|" & tabURL
+                    else if tabURL contains "veed.io" then
+                        set end of tabResults to "VEED (Chrome)|" & tabURL
+                    else if tabURL contains "fliki.ai" then
+                        set end of tabResults to "Fliki (Chrome)|" & tabURL
+                    -- Creative - Other
+                    else if tabURL contains "canva.com" then
+                        set end of tabResults to "Canva (Chrome)|" & tabURL
+                    else if tabURL contains "figma.com" then
+                        set end of tabResults to "Figma (Chrome)|" & tabURL
                     end if
                 end repeat
             end repeat
@@ -99,6 +143,7 @@ tell application "System Events"
             repeat with w in windows
                 repeat with t in tabs of w
                     set tabURL to URL of t
+                    -- Research
                     if tabURL contains "claude.ai" then
                         set end of tabResults to "Claude (Safari)|" & tabURL
                     else if tabURL contains "chat.openai.com" or tabURL contains "chatgpt.com" then
@@ -107,6 +152,24 @@ tell application "System Events"
                         set end of tabResults to "Gemini (Safari)|" & tabURL
                     else if tabURL contains "perplexity.ai" then
                         set end of tabResults to "Perplexity (Safari)|" & tabURL
+                    else if tabURL contains "grok.x.ai" then
+                        set end of tabResults to "Grok (Safari)|" & tabURL
+                    -- Creative - Video
+                    else if tabURL contains "nanobanana" then
+                        set end of tabResults to "NanoBanana (Safari)|" & tabURL
+                    else if tabURL contains "runway" then
+                        set end of tabResults to "Runway (Safari)|" & tabURL
+                    else if tabURL contains "pika.art" then
+                        set end of tabResults to "Pika (Safari)|" & tabURL
+                    else if tabURL contains "klingai" then
+                        set end of tabResults to "Kling (Safari)|" & tabURL
+                    else if tabURL contains "lumalabs" then
+                        set end of tabResults to "Luma (Safari)|" & tabURL
+                    -- Creative - Image
+                    else if tabURL contains "midjourney.com" then
+                        set end of tabResults to "Midjourney (Safari)|" & tabURL
+                    else if tabURL contains "leonardo.ai" then
+                        set end of tabResults to "Leonardo.ai (Safari)|" & tabURL
                     end if
                 end repeat
             end repeat

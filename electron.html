@@ -1274,7 +1274,15 @@
         
         // 앱별 목적 분류
         const appPurposeMap = {
+            // 코딩
             'cursor': 'coding',
+            'copilot': 'coding',
+            'copilotchrome': 'coding',
+            'githubcopilot': 'coding',
+            'replit': 'coding',
+            'replitchrome': 'coding',
+            
+            // 리서치
             'claude': 'research',
             'claudechrome': 'research',
             'claudesafari': 'research',
@@ -1286,12 +1294,68 @@
             'geminisafari': 'research',
             'perplexity': 'research',
             'perplexitychrome': 'research',
+            'perplexitysafari': 'research',
             'grok': 'research',
-            'copilot': 'coding',
-            'notion': 'creative',
+            'grokchrome': 'research',
+            'poe': 'research',
+            'poechrome': 'research',
+            
+            // 크리에이티브 - 이미지
             'midjourney': 'creative',
+            'midjjourneychrome': 'creative',
+            'dalle': 'creative',
+            'dallechrome': 'creative',
+            'leonardoai': 'creative',
+            'leonardoaichrome': 'creative',
+            'ideogram': 'creative',
+            'ideogramchrome': 'creative',
+            'playground': 'creative',
+            'playgroundchrome': 'creative',
+            'stablediffusion': 'creative',
+            'adobe firefly': 'creative',
+            'adobefirefly': 'creative',
+            
+            // 크리에이티브 - 영상
+            'nanobanana': 'creative',
+            'nanobananachrome': 'creative',
+            'nanobananasafari': 'creative',
             'runway': 'creative',
-            'dalle': 'creative'
+            'runwaychrome': 'creative',
+            'runwayml': 'creative',
+            'pika': 'creative',
+            'pikachrome': 'creative',
+            'pikalabs': 'creative',
+            'sora': 'creative',
+            'sorachrome': 'creative',
+            'kling': 'creative',
+            'klingchrome': 'creative',
+            'klingai': 'creative',
+            'luma': 'creative',
+            'lumachrome': 'creative',
+            'lumaai': 'creative',
+            'dreammachine': 'creative',
+            'heygen': 'creative',
+            'heygenchrome': 'creative',
+            'synthesia': 'creative',
+            'synthesiachrome': 'creative',
+            'invideo': 'creative',
+            'invideochrome': 'creative',
+            'descript': 'creative',
+            'descriptchrome': 'creative',
+            'kapwing': 'creative',
+            'kapwingchrome': 'creative',
+            'veed': 'creative',
+            'veedchrome': 'creative',
+            'fliki': 'creative',
+            'flikichrome': 'creative',
+            
+            // 크리에이티브 - 기타
+            'notion': 'creative',
+            'notionchrome': 'creative',
+            'canva': 'creative',
+            'canvachrome': 'creative',
+            'figma': 'creative',
+            'figmachrome': 'creative'
         };
         
         function renderWorkspace() {
