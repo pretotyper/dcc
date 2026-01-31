@@ -196,37 +196,20 @@
         
         .layout-tab svg { display: block; }
         
-        .add-ai-btn {
+        .scan-btn {
             -webkit-app-region: no-drag;
             background: var(--accent);
             border: none;
             color: white;
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: var(--radius-sm);
             font-size: 11px;
             cursor: pointer;
             font-weight: 500;
         }
         
-        .add-ai-btn:hover { opacity: 0.9; }
-        
-        .scan-btn {
-            -webkit-app-region: no-drag;
-            background: transparent;
-            border: 1px solid var(--border-subtle);
-            color: var(--text-tertiary);
-            width: 32px;
-            height: 32px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .scan-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-        .scan-btn.scanning { animation: pulse 1s infinite; }
+        .scan-btn:hover { opacity: 0.9; }
+        .scan-btn.scanning { opacity: 0.7; }
         
         .settings-btn {
             -webkit-app-region: no-drag;
@@ -825,8 +808,8 @@
         .settings-panel {
             position: fixed;
             top: 0;
-            right: -320px;
-            width: 300px;
+            right: -360px;
+            width: 340px;
             height: 100%;
             background: var(--bg-surface);
             border-left: 1px solid var(--border-subtle);
@@ -1031,8 +1014,7 @@
                 </button>
             </div>
             
-            <button class="add-ai-btn" id="addAiBtn">+ AI 추가</button>
-            <button class="scan-btn" id="scanBtn" title="AI 앱 자동 감지">🔍</button>
+            <button class="scan-btn" id="scanBtn">AI 감지</button>
             <button class="settings-btn" id="settingsBtn">⚙</button>
         </header>
         
@@ -1603,8 +1585,13 @@
             const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
             if (monitoredApps.length === 0) return;
             
-            const appNames = monitoredApps.map(([_, app]) => app.name);
-            const results = await ipcRenderer.invoke('capture-all-windows', appNames);
+            // 앱 정보 (브라우저 탭인지 여부 포함)
+            const appInfos = monitoredApps.map(([_, app]) => ({
+                name: app.name,
+                browser: app.browser || null
+            }));
+            
+            const results = await ipcRenderer.invoke('capture-all-windows', appInfos);
             
             monitoredApps.forEach(([key, app]) => {
                 if (results[app.name]) {
@@ -1705,10 +1692,6 @@
                            'AI', 'Chat', 'Assistant', 'Midjourney', 'DALL', 'Stable', 'Runway',
                            'Notion', 'Pi', 'Poe', 'Hugging'];
         
-        document.getElementById('addAiBtn').addEventListener('click', () => {
-            addAiModal.classList.add('show');
-        });
-        
         document.getElementById('modalClose').addEventListener('click', closeModal);
         document.getElementById('modalCancel').addEventListener('click', closeModal);
         addAiModal.addEventListener('click', (e) => {
@@ -1788,53 +1771,56 @@
         document.getElementById('scanBtn').addEventListener('click', async () => {
             const scanBtn = document.getElementById('scanBtn');
             scanBtn.classList.add('scanning');
+            scanBtn.textContent = '감지 중...';
             toast('🔍', '실행 중인 AI 앱 검색 중...');
             
             try {
-                // 실행 중인 AI 앱 감지
+                // 데스크탑 앱 + 브라우저 탭 모두 감지
                 const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
                 
                 const detected = [];
                 
-                // 알려진 AI 앱인지 확인하고 목록에 추가
-                runningApps.forEach(appName => {
-                    const key = appName.toLowerCase().replace(/\s+/g, '');
-                    const known = knownAiApps[appName];
+                runningApps.forEach(appInfo => {
+                    const name = appInfo.name;
+                    const key = name.toLowerCase().replace(/[\s()]/g, '');
                     
-                    if (known) {
-                        detected.push({ 
-                            name: appName, 
-                            key: key,
-                            ...known, 
-                            source: 'app',
-                            monitored: false
-                        });
-                    } else if (aiKeywords.some(kw => appName.toLowerCase().includes(kw.toLowerCase()))) {
-                        // 알려진 앱 아니지만 AI 키워드 포함
-                        detected.push({
-                            name: appName,
-                            key: key,
-                            url: '',
-                            color: '#a78bfa',
-                            source: 'app',
-                            monitored: false
-                        });
-                    }
+                    // 이미 모니터링 중인지 확인
+                    if (state.apps[key]?.monitored) return;
+                    
+                    // 색상 결정
+                    let color = '#a78bfa';
+                    if (name.includes('ChatGPT')) color = '#10b981';
+                    else if (name.includes('Gemini')) color = '#3b82f6';
+                    else if (name.includes('Claude')) color = '#a78bfa';
+                    else if (name.includes('Perplexity')) color = '#06b6d4';
+                    else if (name.includes('Cursor')) color = '#f59e0b';
+                    else if (name.includes('Grok')) color = '#ef4444';
+                    else if (name.includes('Copilot')) color = '#3b82f6';
+                    
+                    detected.push({
+                        name: name,
+                        key: key,
+                        url: appInfo.url || '',
+                        color: color,
+                        type: appInfo.type,
+                        browser: appInfo.browser
+                    });
                 });
                 
                 if (detected.length > 0) {
                     showDetectedApps(detected);
-                    toast('✓', `${detected.length}개 AI 앱 발견`);
+                    toast('✓', `${detected.length}개 AI 발견`);
                 } else {
-                    toast('ℹ', '실행 중인 AI 앱이 없습니다');
+                    toast('ℹ', '실행 중인 AI가 없습니다');
                 }
                 
             } catch (e) {
                 console.error(e);
-                toast('⚠', '앱 감지 실패');
+                toast('⚠', '감지 실패');
             }
             
             scanBtn.classList.remove('scanning');
+            scanBtn.textContent = 'AI 감지';
         });
         
         function showDetectedApps(apps) {
@@ -1842,11 +1828,11 @@
             const list = document.getElementById('detectedList');
             
             list.innerHTML = apps.map(app => `
-                <div class="detected-item" data-name="${app.name}" data-key="${app.key}" data-url="${app.url || ''}" data-color="${app.color}">
+                <div class="detected-item" data-name="${app.name}" data-key="${app.key}" data-url="${app.url || ''}" data-color="${app.color}" data-type="${app.type}" data-browser="${app.browser || ''}">
                     <div class="detected-icon" style="background: ${app.color}">${app.name.charAt(0)}</div>
                     <span class="detected-name">${app.name}</span>
-                    <span class="detected-source">💻</span>
-                    <span class="detected-add">+ 모니터링</span>
+                    <span class="detected-source">${app.type === 'browser' ? '🌐' : '💻'}</span>
+                    <span class="detected-add">+ 추가</span>
                 </div>
             `).join('');
             
@@ -1859,6 +1845,8 @@
                     const key = item.dataset.key;
                     const name = item.dataset.name;
                     const color = item.dataset.color;
+                    const type = item.dataset.type;
+                    const browser = item.dataset.browser;
                     
                     // state.apps에 추가
                     if (!state.apps[key]) {
@@ -1870,13 +1858,15 @@
                             status: 'idle',
                             progress: 0,
                             monitored: true,
-                            screenshot: null
+                            screenshot: null,
+                            type: type,
+                            browser: browser
                         };
                     } else {
                         state.apps[key].monitored = true;
                     }
                     
-                    toast('✓', `${name} 모니터링 시작`);
+                    toast('✓', `${name} 추가됨`);
                     item.remove();
                     
                     if (list.children.length === 0) {

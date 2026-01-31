@@ -20,29 +20,117 @@ function createWindow() {
     win.loadFile('electron.html');
 }
 
-// 실행 중인 AI 앱 감지
+// 실행 중인 AI 앱 감지 (데스크탑 앱 + 브라우저 탭)
 ipcMain.handle('get-running-ai-apps', async () => {
-    return new Promise((resolve) => {
-        const aiApps = ['Claude', 'ChatGPT', 'Cursor', 'Notion', 'Slack', 'Arc', 'Safari', 'Google Chrome', 'Firefox'];
+    return new Promise(async (resolve) => {
+        const results = [];
+        
+        // 1. 데스크탑 AI 앱 감지
+        const desktopAiApps = ['Claude', 'Cursor', 'Notion'];
         const script = `
 tell application "System Events"
     set runningApps to name of every process whose background only is false
 end tell
 return runningApps`;
         
-        exec(`osascript -e '${script}'`, (error, stdout) => {
-            if (error) {
-                // fallback: ps 명령어 사용
-                exec(`ps aux`, (err, out) => {
-                    const found = aiApps.filter(app => out.includes(app));
-                    resolve(found);
-                });
-                return;
-            }
+        try {
+            const stdout = await new Promise((res, rej) => {
+                exec(`osascript -e '${script}'`, (err, out) => err ? rej(err) : res(out));
+            });
             const running = stdout.trim().split(', ');
-            const found = running.filter(app => aiApps.some(ai => app.includes(ai)));
-            resolve(found);
-        });
+            running.forEach(app => {
+                if (desktopAiApps.some(ai => app.includes(ai))) {
+                    results.push({ name: app, type: 'desktop', browser: null });
+                }
+            });
+        } catch (e) {}
+        
+        // 2. Chrome AI 탭 감지
+        const chromeScript = `
+tell application "System Events"
+    if exists process "Google Chrome" then
+        tell application "Google Chrome"
+            set tabResults to {}
+            repeat with w in windows
+                repeat with t in tabs of w
+                    set tabURL to URL of t
+                    set tabTitle to title of t
+                    if tabURL contains "claude.ai" then
+                        set end of tabResults to "Claude (Chrome)|" & tabURL
+                    else if tabURL contains "chat.openai.com" or tabURL contains "chatgpt.com" then
+                        set end of tabResults to "ChatGPT (Chrome)|" & tabURL
+                    else if tabURL contains "gemini.google.com" then
+                        set end of tabResults to "Gemini (Chrome)|" & tabURL
+                    else if tabURL contains "perplexity.ai" then
+                        set end of tabResults to "Perplexity (Chrome)|" & tabURL
+                    else if tabURL contains "grok.x.ai" then
+                        set end of tabResults to "Grok (Chrome)|" & tabURL
+                    else if tabURL contains "copilot.microsoft.com" then
+                        set end of tabResults to "Copilot (Chrome)|" & tabURL
+                    end if
+                end repeat
+            end repeat
+            return tabResults
+        end tell
+    end if
+end tell`;
+        
+        try {
+            const chromeOut = await new Promise((res) => {
+                exec(`osascript -e '${chromeScript}'`, (err, out) => res(err ? '' : out));
+            });
+            if (chromeOut.trim()) {
+                const tabs = chromeOut.trim().split(', ');
+                tabs.forEach(tab => {
+                    const [name, url] = tab.split('|');
+                    if (name && !results.find(r => r.name === name)) {
+                        results.push({ name: name.trim(), type: 'browser', browser: 'Chrome', url: url?.trim() });
+                    }
+                });
+            }
+        } catch (e) {}
+        
+        // 3. Safari AI 탭 감지
+        const safariScript = `
+tell application "System Events"
+    if exists process "Safari" then
+        tell application "Safari"
+            set tabResults to {}
+            repeat with w in windows
+                repeat with t in tabs of w
+                    set tabURL to URL of t
+                    if tabURL contains "claude.ai" then
+                        set end of tabResults to "Claude (Safari)|" & tabURL
+                    else if tabURL contains "chat.openai.com" or tabURL contains "chatgpt.com" then
+                        set end of tabResults to "ChatGPT (Safari)|" & tabURL
+                    else if tabURL contains "gemini.google.com" then
+                        set end of tabResults to "Gemini (Safari)|" & tabURL
+                    else if tabURL contains "perplexity.ai" then
+                        set end of tabResults to "Perplexity (Safari)|" & tabURL
+                    end if
+                end repeat
+            end repeat
+            return tabResults
+        end tell
+    end if
+end tell`;
+        
+        try {
+            const safariOut = await new Promise((res) => {
+                exec(`osascript -e '${safariScript}'`, (err, out) => res(err ? '' : out));
+            });
+            if (safariOut.trim()) {
+                const tabs = safariOut.trim().split(', ');
+                tabs.forEach(tab => {
+                    const [name, url] = tab.split('|');
+                    if (name && !results.find(r => r.name === name)) {
+                        results.push({ name: name.trim(), type: 'browser', browser: 'Safari', url: url?.trim() });
+                    }
+                });
+            }
+        } catch (e) {}
+        
+        resolve(results);
     });
 });
 
@@ -162,24 +250,33 @@ return windowId`;
 });
 
 // 모든 AI 창 캡처
-ipcMain.handle('capture-all-windows', async (event, appNames) => {
+ipcMain.handle('capture-all-windows', async (event, appInfos) => {
     const results = {};
+    const fs = require('fs');
     
-    for (const appName of appNames) {
-        const tmpFile = `/tmp/dcc_${appName.replace(/\s/g, '_')}.jpg`;
+    for (const info of appInfos) {
+        const { name, browser } = info;
+        const safeName = name.replace(/[\s()]/g, '_');
+        const tmpFile = `/tmp/dcc_${safeName}.jpg`;
         
         try {
-            // screencapture로 앱 창 캡처 (더 빠른 jpg 사용)
-            execSync(`screencapture -x -o -l $(osascript -e 'tell app "System Events" to tell process "${appName}" to id of window 1' 2>/dev/null || echo 0) ${tmpFile} 2>/dev/null`, { timeout: 2000 });
+            let processName = name;
             
-            const fs = require('fs');
+            // 브라우저 탭인 경우 해당 브라우저 캡처
+            if (browser) {
+                processName = browser === 'Chrome' ? 'Google Chrome' : browser;
+            }
+            
+            // screencapture로 앱 창 캡처
+            execSync(`screencapture -x -o -l $(osascript -e 'tell app "System Events" to tell process "${processName}" to id of window 1' 2>/dev/null || echo 0) ${tmpFile} 2>/dev/null`, { timeout: 3000 });
+            
             if (fs.existsSync(tmpFile)) {
                 const data = fs.readFileSync(tmpFile, { encoding: 'base64' });
                 fs.unlinkSync(tmpFile);
-                results[appName] = `data:image/jpeg;base64,${data}`;
+                results[name] = `data:image/jpeg;base64,${data}`;
             }
         } catch (e) {
-            // 앱 창 캡처 실패
+            // 캡처 실패
         }
     }
     
