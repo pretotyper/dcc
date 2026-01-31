@@ -814,8 +814,8 @@
         .settings-panel {
             position: fixed;
             top: 0;
-            right: -360px;
-            width: 340px;
+            right: -340px;
+            width: 320px;
             height: 100%;
             background: var(--bg-surface);
             border-left: 1px solid var(--border-subtle);
@@ -823,9 +823,20 @@
             z-index: 201;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
         
         .settings-panel.show { right: 0; }
+        
+        .settings-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
         
         .lang-options {
             display: flex;
@@ -873,15 +884,6 @@
         
         .settings-close:hover { background: var(--bg-hover); }
         
-        .settings-body {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        
         .settings-section-title {
             font-size: 10px;
             text-transform: uppercase;
@@ -894,19 +896,26 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 10px 0;
+            gap: 16px;
         }
         
-        .setting-label { font-size: 12px; color: var(--text-secondary); }
+        .setting-label { 
+            font-size: 13px; 
+            color: var(--text-secondary);
+            flex: 1;
+        }
         
         .toggle {
-            width: 36px;
-            height: 20px;
-            background: var(--bg-active);
+            width: 40px;
+            height: 22px;
+            background: #3f3f46;
+            border: 1px solid #52525b;
             border-radius: 20px;
             position: relative;
             cursor: pointer;
-            transition: background 0.2s ease;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
         }
         
         .toggle::before {
@@ -916,14 +925,20 @@
             left: 2px;
             width: 16px;
             height: 16px;
-            background: var(--text-tertiary);
+            background: #a1a1aa;
             border-radius: 50%;
             transition: all 0.2s ease;
         }
         
         .setting-row input { display: none; }
-        .setting-row input:checked + .toggle { background: var(--accent); }
-        .setting-row input:checked + .toggle::before { transform: translateX(16px); background: white; }
+        .setting-row input:checked + .toggle { 
+            background: var(--accent); 
+            border-color: var(--accent);
+        }
+        .setting-row input:checked + .toggle::before { 
+            transform: translateX(18px); 
+            background: white; 
+        }
         
         /* Toast */
         .toast-container {
