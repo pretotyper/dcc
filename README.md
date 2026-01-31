@@ -1,6 +1,11 @@
-# Kova - AI Screen Orchestrator
+# DCC - Dubai Chewy Cookie 🍪
+
+**다 모아서 맛있게**
 
 AI 도구들을 한 화면에서 효율적으로 관리하는 데스크톱 앱
+
+> Kova 프로젝트의 코드명: DCC (Dubai Chewy Cookie)
+> 여러 AI를 한데 모아 맛있게 활용하자는 의미
 
 ## 주요 기능
 
