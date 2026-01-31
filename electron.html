@@ -702,17 +702,65 @@
         
         .window-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
         
-        /* Webview */
+        /* Window Body */
         .window-body {
             flex: 1;
             position: relative;
+            cursor: pointer;
+            overflow: hidden;
         }
         
-        webview {
+        .window-screenshot {
             width: 100%;
             height: 100%;
-            background: white;
+            object-fit: cover;
+            object-position: top center;
+            background: var(--bg-elevated);
         }
+        
+        .window-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-tertiary);
+        }
+        
+        .placeholder-icon { font-size: 36px; opacity: 0.4; }
+        .placeholder-text { font-size: 12px; }
+        .placeholder-hint { font-size: 10px; color: var(--text-quaternary); }
+        
+        .window-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        
+        .window-body:hover .window-overlay { opacity: 1; }
+        
+        .overlay-btn {
+            background: var(--accent);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .overlay-btn:hover { opacity: 0.9; }
         
         .window-progress {
             position: absolute;
@@ -1137,35 +1185,23 @@
         // ========== State ==========
         const state = {
             lang: 'ko',
-            currentPurpose: 'research',
+            currentPurpose: 'all',
             currentLayout: 'split',
-            timelineScope: 'purpose',
-            focusedApp: 'claude',
-            lastCopied: null,  // { from: appKey, content: string }
+            timelineScope: 'all',
+            focusedApp: null,
+            lastCopied: null,
             settings: { notifyComplete: true, autoFocus: false, showProgress: true },
-            apps: {
-                claude: { name: 'Claude', url: 'https://claude.ai', color: 'claude', status: 'running', progress: 65 },
-                gpt: { name: 'ChatGPT', url: 'https://chat.openai.com', color: 'gpt', status: 'running', progress: 35 },
-                gemini: { name: 'Gemini', url: 'https://gemini.google.com', color: 'gemini', status: 'idle', progress: 0 },
-                perplexity: { name: 'Perplexity', url: 'https://perplexity.ai', color: 'perplexity', status: 'done', progress: 100 },
-                midjourney: { name: 'Midjourney', url: 'https://midjourney.com', color: 'midjourney', status: 'idle', progress: 0 },
-                notion: { name: 'Notion AI', url: 'https://notion.so', color: 'notion', status: 'idle', progress: 0 }
-            },
+            apps: {},  // 감지된 앱만 추가됨
             purposes: {
-                all: { apps: ['claude', 'gpt', 'gemini', 'perplexity', 'midjourney', 'notion'] },
-                research: { apps: ['claude', 'gpt', 'gemini', 'perplexity'] },
-                coding: { apps: ['claude', 'gpt', 'gemini', 'notion'] },
-                creative: { apps: ['gpt', 'midjourney', 'claude', 'notion'] }
+                all: { apps: [] },
+                research: { apps: [] },
+                coding: { apps: [] },
+                creative: { apps: [] }
             },
             layouts: {
                 focus: 1, split: 2, grid: 4, stack: 3
             },
-            timeline: [
-                { app: 'claude', task: '브랜드 스토리 작성', time: '2분 전' },
-                { app: 'gpt', task: '이미지 프롬프트 작성', time: '1분 전' },
-                { app: 'gemini', task: '시장 트렌드 분석', time: '30초 전' },
-                { app: 'perplexity', task: '최신 AI 뉴스', time: '방금' }
-            ]
+            timeline: []
         };
         
         function t(key) { return i18n[state.lang][key] || key; }
@@ -1223,11 +1259,25 @@
             workspace.className = `workspace layout-${state.currentLayout}`;
             
             const count = state.layouts[state.currentLayout];
-            const purposeApps = state.purposes[state.currentPurpose].apps;
-            const appsToShow = purposeApps.slice(0, count);
+            const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
+            const appsToShow = monitoredApps.slice(0, count);
             
-            workspace.innerHTML = appsToShow.map(key => {
-                const app = state.apps[key];
+            if (appsToShow.length === 0) {
+                workspace.innerHTML = `
+                    <div class="window">
+                        <div class="window-body">
+                            <div class="window-placeholder">
+                                <div class="placeholder-icon">📺</div>
+                                <div class="placeholder-text">모니터링할 AI 앱을 선택하세요</div>
+                                <div class="placeholder-hint">"🔍 AI 앱 자동 감지" 버튼을 눌러 실행 중인 앱을 찾으세요</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            workspace.innerHTML = appsToShow.map(([key, app]) => {
                 const showProgress = state.settings.showProgress && app.status === 'running';
                 
                 return `
@@ -1239,18 +1289,23 @@
                             </div>
                             <div class="window-status">
                                 <div class="status-dot ${app.status}"></div>
-                                <span>${t(app.status === 'running' ? 'running' : app.status === 'done' ? 'done' : 'idle')}</span>
+                                <span>${t(app.status === 'running' ? 'running' : app.status === 'done' ? 'done' : 'ready')}</span>
                             </div>
                             <div class="window-actions">
-                                <button class="window-btn reload-btn" data-app="${key}" title="새로고침">⟳</button>
-                                <button class="window-btn open-btn" data-app="${key}" title="새 창에서 열기">↗</button>
+                                <button class="window-btn reload-btn" data-app="${key}" title="스크린샷 갱신">⟳</button>
+                                <button class="window-btn open-btn" data-app="${key}" title="앱 열기">↗</button>
                             </div>
                         </div>
-                        <div class="window-body">
-                            <webview data-app="${key}" data-src="${app.url}"></webview>
-                            <div class="loading-overlay" id="loading-${key}">
-                                <div class="loading-spinner"></div>
-                                <div class="loading-text">${app.name} 로딩 중...</div>
+                        <div class="window-body" data-app="${key}">
+                            ${app.screenshot 
+                                ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">`
+                                : `<div class="window-placeholder">
+                                    <div class="loading-spinner"></div>
+                                    <div class="placeholder-text">캡처 중...</div>
+                                  </div>`
+                            }
+                            <div class="window-overlay">
+                                <button class="overlay-btn" data-app="${key}">클릭하여 ${app.name} 열기</button>
                             </div>
                             ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:${app.progress}%"></div></div>` : ''}
                         </div>
@@ -1258,41 +1313,18 @@
                 `;
             }).join('');
             
-            // Lazy load webviews - 하나씩 순차적으로 로드
-            const webviews = document.querySelectorAll('webview');
-            let loadIndex = 0;
-            
-            function loadNextWebview() {
-                if (loadIndex >= webviews.length) return;
-                
-                const wv = webviews[loadIndex];
-                const appKey = wv.dataset.app;
-                const loading = document.getElementById(`loading-${appKey}`);
-                const url = wv.dataset.src;
-                
-                if (url && !wv.src) {
-                    wv.src = url;
-                }
-                
-                wv.addEventListener('did-start-loading', () => loading?.classList.remove('hidden'));
-                wv.addEventListener('did-stop-loading', () => {
-                    loading?.classList.add('hidden');
-                    loadIndex++;
-                    // 다음 webview 로드 (약간의 딜레이)
-                    setTimeout(loadNextWebview, 300);
+            // 클릭하면 앱 활성화
+            workspace.querySelectorAll('.window-body').forEach(body => {
+                body.addEventListener('click', async (e) => {
+                    if (e.target.closest('.window-actions')) return;
+                    const appKey = body.dataset.app;
+                    const app = state.apps[appKey];
+                    if (app) {
+                        await ipcRenderer.invoke('activate-app', app.name);
+                        toast('↗', `${app.name} 활성화`);
+                    }
                 });
-                
-                wv.addEventListener('did-fail-load', () => {
-                    loading?.classList.add('hidden');
-                    loadIndex++;
-                    setTimeout(loadNextWebview, 100);
-                });
-            }
-            
-            // 첫 번째 webview 바로 로드
-            if (webviews.length > 0) {
-                loadNextWebview();
-            }
+            });
         }
         
         function render() {
@@ -1356,26 +1388,29 @@
         });
         
         // Workspace clicks
-        document.getElementById('workspace').addEventListener('click', e => {
+        document.getElementById('workspace').addEventListener('click', async e => {
             const reloadBtn = e.target.closest('.reload-btn');
             if (reloadBtn) {
-                const wv = document.querySelector(`webview[data-app="${reloadBtn.dataset.app}"]`);
-                if (wv) wv.reload();
+                // 스크린샷 갱신
+                toast('⟳', '화면 갱신 중...');
+                await captureScreenshots();
                 return;
             }
             
             const openBtn = e.target.closest('.open-btn');
             if (openBtn) {
                 const app = state.apps[openBtn.dataset.app];
-                if (app) require('electron').shell.openExternal(app.url);
+                if (app) {
+                    await ipcRenderer.invoke('activate-app', app.name);
+                    toast('↗', `${app.name} 활성화`);
+                }
                 return;
             }
             
             const window = e.target.closest('.window');
-            if (window && !e.target.closest('.window-actions')) {
+            if (window && !e.target.closest('.window-actions') && !e.target.closest('.window-body')) {
                 state.focusedApp = window.dataset.app;
                 document.querySelectorAll('.window').forEach(w => w.classList.toggle('focused', w.dataset.app === state.focusedApp));
-                document.querySelectorAll('.timeline-item').forEach(i => i.classList.toggle('active', i.dataset.app === state.focusedApp));
             }
         });
         
@@ -1561,23 +1596,46 @@
             setTimeout(() => t.remove(), 3000);
         }
         
-        // ========== Progress Simulation ==========
-        function startSimulation() {
-            setInterval(() => {
-                Object.entries(state.apps).forEach(([key, app]) => {
-                    if (app.status === 'running') {
-                        app.progress = Math.min(app.progress + Math.random() * 2, 100);
-                        if (app.progress >= 100) {
-                            app.status = 'done';
-                            if (state.settings.notifyComplete) toast('✓', `${app.name} 완료`);
-                        }
-                        
-                        const bar = document.querySelector(`.window[data-app="${key}"] .progress-bar`);
-                        if (bar) bar.style.width = app.progress + '%';
+        // ========== Screenshot Capture ==========
+        let captureInterval = null;
+        
+        async function captureScreenshots() {
+            const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
+            if (monitoredApps.length === 0) return;
+            
+            const appNames = monitoredApps.map(([_, app]) => app.name);
+            const results = await ipcRenderer.invoke('capture-all-windows', appNames);
+            
+            monitoredApps.forEach(([key, app]) => {
+                if (results[app.name]) {
+                    app.screenshot = results[app.name];
+                    // 이미지만 업데이트 (전체 리렌더 방지)
+                    const img = document.querySelector(`.window[data-app="${key}"] .window-screenshot`);
+                    if (img) {
+                        img.src = results[app.name];
+                    } else {
+                        // 이미지가 없으면 전체 렌더
+                        renderWorkspace();
                     }
-                });
-                renderStatusQueue();
-            }, 500);
+                }
+            });
+        }
+        
+        function startCapturing() {
+            if (captureInterval) clearInterval(captureInterval);
+            
+            // 처음 바로 캡처
+            captureScreenshots();
+            
+            // 2초마다 갱신
+            captureInterval = setInterval(captureScreenshots, 2000);
+        }
+        
+        function stopCapturing() {
+            if (captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = null;
+            }
         }
         
         // ========== Persistence ==========
@@ -1733,53 +1791,42 @@
             toast('🔍', '실행 중인 AI 앱 검색 중...');
             
             try {
-                const [runningApps, safariTabs, chromeTabs] = await Promise.all([
-                    ipcRenderer.invoke('get-running-apps'),
-                    ipcRenderer.invoke('get-safari-tabs'),
-                    ipcRenderer.invoke('get-chrome-tabs')
-                ]);
+                // 실행 중인 AI 앱 감지
+                const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
                 
                 const detected = [];
                 
-                // 실행 중인 앱에서 AI 찾기
-                runningApps.forEach(app => {
-                    if (aiKeywords.some(kw => app.toLowerCase().includes(kw.toLowerCase()))) {
-                        if (knownAiApps[app]) {
-                            detected.push({ name: app, ...knownAiApps[app], source: 'app' });
-                        }
+                // 알려진 AI 앱인지 확인하고 목록에 추가
+                runningApps.forEach(appName => {
+                    const key = appName.toLowerCase().replace(/\s+/g, '');
+                    const known = knownAiApps[appName];
+                    
+                    if (known) {
+                        detected.push({ 
+                            name: appName, 
+                            key: key,
+                            ...known, 
+                            source: 'app',
+                            monitored: false
+                        });
+                    } else if (aiKeywords.some(kw => appName.toLowerCase().includes(kw.toLowerCase()))) {
+                        // 알려진 앱 아니지만 AI 키워드 포함
+                        detected.push({
+                            name: appName,
+                            key: key,
+                            url: '',
+                            color: '#a78bfa',
+                            source: 'app',
+                            monitored: false
+                        });
                     }
                 });
                 
-                // 브라우저 탭에서 AI 찾기
-                const tabPatterns = [
-                    { pattern: /claude\.ai/i, name: 'Claude' },
-                    { pattern: /chat\.openai\.com/i, name: 'ChatGPT' },
-                    { pattern: /gemini\.google\.com/i, name: 'Gemini' },
-                    { pattern: /perplexity\.ai/i, name: 'Perplexity' },
-                    { pattern: /grok\.x\.ai/i, name: 'Grok' },
-                    { pattern: /copilot\.microsoft\.com/i, name: 'Copilot' },
-                    { pattern: /midjourney\.com/i, name: 'Midjourney' },
-                    { pattern: /poe\.com/i, name: 'Poe' },
-                    { pattern: /huggingface\.co\/chat/i, name: 'HuggingChat' }
-                ];
-                
-                const allTabs = safariTabs + chromeTabs;
-                tabPatterns.forEach(({ pattern, name }) => {
-                    if (pattern.test(allTabs) && knownAiApps[name]) {
-                        if (!detected.find(d => d.name === name)) {
-                            detected.push({ name, ...knownAiApps[name], source: 'browser' });
-                        }
-                    }
-                });
-                
-                // 아직 추가 안 된 것만 필터링
-                const newApps = detected.filter(d => !state.apps[d.name.toLowerCase().replace(/\s+/g, '')]);
-                
-                if (newApps.length > 0) {
-                    showDetectedApps(newApps);
-                    toast('✓', `${newApps.length}개 AI 앱 발견`);
+                if (detected.length > 0) {
+                    showDetectedApps(detected);
+                    toast('✓', `${detected.length}개 AI 앱 발견`);
                 } else {
-                    toast('ℹ', '새로운 AI 앱을 찾지 못했습니다');
+                    toast('ℹ', '실행 중인 AI 앱이 없습니다');
                 }
                 
             } catch (e) {
@@ -1795,25 +1842,50 @@
             const list = document.getElementById('detectedList');
             
             list.innerHTML = apps.map(app => `
-                <div class="detected-item" data-name="${app.name}" data-url="${app.url}" data-color="${app.color}">
+                <div class="detected-item" data-name="${app.name}" data-key="${app.key}" data-url="${app.url || ''}" data-color="${app.color}">
                     <div class="detected-icon" style="background: ${app.color}">${app.name.charAt(0)}</div>
                     <span class="detected-name">${app.name}</span>
-                    <span class="detected-source">${app.source === 'browser' ? '🌐' : '💻'}</span>
-                    <span class="detected-add">+</span>
+                    <span class="detected-source">💻</span>
+                    <span class="detected-add">+ 모니터링</span>
                 </div>
             `).join('');
             
             section.style.display = 'block';
             addAiModal.classList.add('show');
             
-            // 클릭 이벤트
+            // 클릭 이벤트 - 모니터링에 추가
             list.querySelectorAll('.detected-item').forEach(item => {
                 item.addEventListener('click', () => {
-                    addNewApp(item.dataset.name, item.dataset.url, item.dataset.color);
+                    const key = item.dataset.key;
+                    const name = item.dataset.name;
+                    const color = item.dataset.color;
+                    
+                    // state.apps에 추가
+                    if (!state.apps[key]) {
+                        state.apps[key] = {
+                            name: name,
+                            url: item.dataset.url,
+                            color: 'custom',
+                            customColor: color,
+                            status: 'idle',
+                            progress: 0,
+                            monitored: true,
+                            screenshot: null
+                        };
+                    } else {
+                        state.apps[key].monitored = true;
+                    }
+                    
+                    toast('✓', `${name} 모니터링 시작`);
                     item.remove();
+                    
                     if (list.children.length === 0) {
                         section.style.display = 'none';
+                        closeModal();
                     }
+                    
+                    renderWorkspace();
+                    startCapturing();
                 });
             });
         }
@@ -1821,7 +1893,11 @@
         // ========== Init ==========
         loadSettings();
         render();
-        startSimulation();
+        
+        // 모니터링 중인 앱이 있으면 캡처 시작
+        if (Object.values(state.apps).some(app => app.monitored)) {
+            startCapturing();
+        }
     </script>
 </body>
 </html>

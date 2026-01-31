@@ -17,7 +17,7 @@ function createWindow() {
         }
     });
 
-    win.loadFile('monitor.html');
+    win.loadFile('electron.html');
 }
 
 // 실행 중인 AI 앱 감지
