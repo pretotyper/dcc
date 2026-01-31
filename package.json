@@ -1,7 +1,7 @@
 {
-  "name": "kova",
+  "name": "dcc",
   "version": "1.0.0",
-  "description": "AI Screen Orchestrator",
+  "description": "DCC - Dubai Chewy Cookie - AI Screen Orchestrator",
   "main": "main.js",
   "scripts": {
     "start": "electron ."

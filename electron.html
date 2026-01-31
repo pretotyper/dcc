@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kova - AI Screen Orchestrator</title>
+    <title>DCC - AI Screen Orchestrator</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -78,16 +78,13 @@
             font-size: 14px;
         }
         
-        .logo-icon {
-            width: 26px;
-            height: 26px;
-            background: linear-gradient(135deg, var(--accent), #818cf8);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .logo-text {
             font-weight: 700;
-            font-size: 13px;
+            font-size: 16px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .header-divider {
@@ -948,8 +945,7 @@
     <div class="app">
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">K</div>
-                <span>Kova</span>
+                <span class="logo-text">DCC</span>
             </div>
             
             <div class="header-divider"></div>
@@ -1559,7 +1555,7 @@
         
         // ========== Persistence ==========
         function saveSettings() {
-            localStorage.setItem('kova-electron', JSON.stringify({
+            localStorage.setItem('dcc', JSON.stringify({
                 lang: state.lang,
                 currentPurpose: state.currentPurpose,
                 currentLayout: state.currentLayout,
@@ -1568,7 +1564,7 @@
         }
         
         function loadSettings() {
-            const saved = localStorage.getItem('kova-electron');
+            const saved = localStorage.getItem('dcc');
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
