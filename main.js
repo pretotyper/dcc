@@ -2,6 +2,11 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { exec } = require('child_process');
 
+// GPU 크래시 방지
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1400,
@@ -14,8 +19,20 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webviewTag: true
+            webviewTag: true,
+            webSecurity: false  // webview CORS 문제 방지
         }
+    });
+
+    // 크래시 핸들링
+    win.webContents.on('crashed', () => {
+        console.log('Renderer crashed, reloading...');
+        win.reload();
+    });
+
+    win.on('unresponsive', () => {
+        console.log('Window unresponsive, reloading...');
+        win.reload();
     });
 
     win.loadFile('electron.html');
