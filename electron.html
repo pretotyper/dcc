@@ -1247,7 +1247,7 @@
                             </div>
                         </div>
                         <div class="window-body">
-                            <webview src="${app.url}" data-app="${key}"></webview>
+                            <webview data-app="${key}" data-src="${app.url}"></webview>
                             <div class="loading-overlay" id="loading-${key}">
                                 <div class="loading-spinner"></div>
                                 <div class="loading-text">${app.name} 로딩 중...</div>
@@ -1258,14 +1258,41 @@
                 `;
             }).join('');
             
-            // Webview events
-            document.querySelectorAll('webview').forEach(wv => {
+            // Lazy load webviews - 하나씩 순차적으로 로드
+            const webviews = document.querySelectorAll('webview');
+            let loadIndex = 0;
+            
+            function loadNextWebview() {
+                if (loadIndex >= webviews.length) return;
+                
+                const wv = webviews[loadIndex];
                 const appKey = wv.dataset.app;
                 const loading = document.getElementById(`loading-${appKey}`);
+                const url = wv.dataset.src;
+                
+                if (url && !wv.src) {
+                    wv.src = url;
+                }
                 
                 wv.addEventListener('did-start-loading', () => loading?.classList.remove('hidden'));
-                wv.addEventListener('did-stop-loading', () => loading?.classList.add('hidden'));
-            });
+                wv.addEventListener('did-stop-loading', () => {
+                    loading?.classList.add('hidden');
+                    loadIndex++;
+                    // 다음 webview 로드 (약간의 딜레이)
+                    setTimeout(loadNextWebview, 300);
+                });
+                
+                wv.addEventListener('did-fail-load', () => {
+                    loading?.classList.add('hidden');
+                    loadIndex++;
+                    setTimeout(loadNextWebview, 100);
+                });
+            }
+            
+            // 첫 번째 webview 바로 로드
+            if (webviews.length > 0) {
+                loadNextWebview();
+            }
         }
         
         function render() {

@@ -38,74 +38,86 @@ function createWindow() {
     win.loadFile('electron.html');
 }
 
-// 실행 중인 앱 감지 (macOS)
+// 실행 중인 앱 감지 (macOS) - 개선된 버전
 ipcMain.handle('get-running-apps', async () => {
     return new Promise((resolve) => {
-        // AppleScript로 실행 중인 앱 목록 가져오기
-        const script = `
-            tell application "System Events"
-                set appList to name of every process whose background only is false
-            end tell
-            return appList
-        `;
-        
-        exec(`osascript -e '${script}'`, (error, stdout) => {
-            if (error) {
-                resolve([]);
-                return;
+        // ps 명령어로 실행 중인 앱 확인 (AppleScript 권한 불필요)
+        exec(`ps aux | grep -E "(Claude|ChatGPT|Cursor|Notion|Slack)" | grep -v grep`, (error, stdout) => {
+            const apps = [];
+            if (stdout) {
+                if (stdout.includes('Claude')) apps.push('Claude');
+                if (stdout.includes('ChatGPT')) apps.push('ChatGPT');
+                if (stdout.includes('Cursor')) apps.push('Cursor');
+                if (stdout.includes('Notion')) apps.push('Notion');
             }
-            const apps = stdout.trim().split(', ').filter(Boolean);
             resolve(apps);
         });
     });
 });
 
-// Safari 탭 감지
-ipcMain.handle('get-safari-tabs', async () => {
+// Chrome 탭 감지 (개선된 버전)
+ipcMain.handle('get-chrome-tabs', async () => {
     return new Promise((resolve) => {
-        const script = `
-            tell application "Safari"
-                set tabList to {}
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set end of tabList to {name of t, URL of t}
-                    end repeat
-                end repeat
-                return tabList
-            end tell
-        `;
-        
-        exec(`osascript -e '${script}'`, (error, stdout) => {
-            if (error) {
-                resolve([]);
+        // Chrome이 실행 중인지 먼저 확인
+        exec(`pgrep -x "Google Chrome"`, (error, stdout) => {
+            if (error || !stdout.trim()) {
+                resolve('');
                 return;
             }
-            resolve(stdout.trim());
+            
+            // Chrome 실행 중이면 AppleScript로 탭 가져오기
+            const script = `
+tell application "Google Chrome"
+    set tabInfo to ""
+    repeat with w in windows
+        repeat with t in tabs of w
+            set tabInfo to tabInfo & URL of t & "\\n"
+        end repeat
+    end repeat
+    return tabInfo
+end tell`;
+            
+            exec(`osascript -e '${script}'`, (err, out) => {
+                if (err) {
+                    console.log('Chrome AppleScript error:', err.message);
+                    resolve('');
+                    return;
+                }
+                resolve(out.trim());
+            });
         });
     });
 });
 
-// Chrome 탭 감지
-ipcMain.handle('get-chrome-tabs', async () => {
+// Safari 탭 감지 (개선된 버전)
+ipcMain.handle('get-safari-tabs', async () => {
     return new Promise((resolve) => {
-        const script = `
-            tell application "Google Chrome"
-                set tabList to {}
-                repeat with w in windows
-                    repeat with t in tabs of w
-                        set end of tabList to {title of t, URL of t}
-                    end repeat
-                end repeat
-                return tabList
-            end tell
-        `;
-        
-        exec(`osascript -e '${script}'`, (error, stdout) => {
-            if (error) {
-                resolve([]);
+        // Safari가 실행 중인지 먼저 확인
+        exec(`pgrep -x "Safari"`, (error, stdout) => {
+            if (error || !stdout.trim()) {
+                resolve('');
                 return;
             }
-            resolve(stdout.trim());
+            
+            const script = `
+tell application "Safari"
+    set tabInfo to ""
+    repeat with w in windows
+        repeat with t in tabs of w
+            set tabInfo to tabInfo & URL of t & "\\n"
+        end repeat
+    end repeat
+    return tabInfo
+end tell`;
+            
+            exec(`osascript -e '${script}'`, (err, out) => {
+                if (err) {
+                    console.log('Safari AppleScript error:', err.message);
+                    resolve('');
+                    return;
+                }
+                resolve(out.trim());
+            });
         });
     });
 });
