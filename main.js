@@ -1,24 +1,23 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const { exec, execSync } = require('child_process');
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1200,
-        height: 700,
-        minWidth: 600,
-        minHeight: 400,
+        width: 1400,
+        height: 900,
+        minWidth: 800,
+        minHeight: 600,
         titleBarStyle: 'hiddenInset',
         trafficLightPosition: { x: 15, y: 15 },
         backgroundColor: '#18181b',
-        alwaysOnTop: false,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
         }
     });
 
-    win.loadFile('orchestrator.html');
+    win.loadFile('monitor.html');
 }
 
 // 실행 중인 AI 앱 감지
@@ -111,6 +110,80 @@ end tell`;
             resolve(true);
         });
     });
+});
+
+// 창 스크린샷 캡처
+ipcMain.handle('capture-window', async (event, appName) => {
+    return new Promise((resolve) => {
+        // screencapture 명령어로 특정 창 캡처
+        const tmpFile = `/tmp/dcc_capture_${Date.now()}.png`;
+        
+        // 앱의 창 ID 가져오기
+        const getWindowScript = `
+tell application "System Events"
+    tell process "${appName}"
+        set windowId to id of window 1
+    end tell
+end tell
+return windowId`;
+        
+        exec(`osascript -e '${getWindowScript}'`, (err, windowId) => {
+            if (err) {
+                // fallback: 앱 전체 캡처
+                exec(`screencapture -l $(osascript -e 'tell app "${appName}" to id of window 1') ${tmpFile}`, (err2) => {
+                    if (err2) {
+                        resolve(null);
+                        return;
+                    }
+                    const fs = require('fs');
+                    const data = fs.readFileSync(tmpFile, { encoding: 'base64' });
+                    fs.unlinkSync(tmpFile);
+                    resolve(`data:image/png;base64,${data}`);
+                });
+                return;
+            }
+            
+            exec(`screencapture -l ${windowId.trim()} ${tmpFile}`, (err2) => {
+                if (err2) {
+                    resolve(null);
+                    return;
+                }
+                const fs = require('fs');
+                try {
+                    const data = fs.readFileSync(tmpFile, { encoding: 'base64' });
+                    fs.unlinkSync(tmpFile);
+                    resolve(`data:image/png;base64,${data}`);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        });
+    });
+});
+
+// 모든 AI 창 캡처
+ipcMain.handle('capture-all-windows', async (event, appNames) => {
+    const results = {};
+    
+    for (const appName of appNames) {
+        const tmpFile = `/tmp/dcc_${appName.replace(/\s/g, '_')}.jpg`;
+        
+        try {
+            // screencapture로 앱 창 캡처 (더 빠른 jpg 사용)
+            execSync(`screencapture -x -o -l $(osascript -e 'tell app "System Events" to tell process "${appName}" to id of window 1' 2>/dev/null || echo 0) ${tmpFile} 2>/dev/null`, { timeout: 2000 });
+            
+            const fs = require('fs');
+            if (fs.existsSync(tmpFile)) {
+                const data = fs.readFileSync(tmpFile, { encoding: 'base64' });
+                fs.unlinkSync(tmpFile);
+                results[appName] = `data:image/jpeg;base64,${data}`;
+            }
+        } catch (e) {
+            // 앱 창 캡처 실패
+        }
+    }
+    
+    return results;
 });
 
 // 브라우저에서 AI 탭 찾기
