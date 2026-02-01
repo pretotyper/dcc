@@ -1413,9 +1413,8 @@
                             ${app.screenshot 
                                 ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">`
                                 : `<div class="window-placeholder" style="cursor: pointer;">
-                                    <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">${getAppEmoji(app.name)}</div>
-                                    <div class="placeholder-text" style="font-size: 16px; color: var(--text-secondary);">${app.name}</div>
-                                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">클릭하여 열기</div>
+                                    <div class="loading-spinner"></div>
+                                    <div class="placeholder-text" style="margin-top: 12px;">화면 로딩 중...</div>
                                   </div>`
                             }
                             ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:${app.progress}%"></div></div>` : ''}
@@ -1423,22 +1422,6 @@
                     </div>
                 `;
             }).join('');
-            
-            function getAppEmoji(name) {
-                const n = name.toLowerCase();
-                if (n.includes('claude')) return '🟣';
-                if (n.includes('chatgpt') || n.includes('gpt')) return '🟢';
-                if (n.includes('gemini')) return '🔵';
-                if (n.includes('cursor')) return '🟡';
-                if (n.includes('perplexity')) return '🔷';
-                if (n.includes('midjourney')) return '🎨';
-                if (n.includes('runway') || n.includes('pika') || n.includes('kling') || n.includes('sora')) return '🎬';
-                if (n.includes('nano') || n.includes('banana')) return '🍌';
-                if (n.includes('notion')) return '📝';
-                if (n.includes('figma')) return '🎯';
-                if (n.includes('canva')) return '🖼️';
-                return '🤖';
-            }
             
             // 클릭하면 앱 활성화
             workspace.querySelectorAll('.window-body').forEach(body => {

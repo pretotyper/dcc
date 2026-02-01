@@ -312,35 +312,42 @@ return windowId`;
     });
 });
 
-// 모든 AI 창 캡처
+// 모든 AI 창 캡처 (desktopCapturer 사용)
 ipcMain.handle('capture-all-windows', async (event, appInfos) => {
+    const { desktopCapturer } = require('electron');
     const results = {};
-    const fs = require('fs');
     
-    for (const info of appInfos) {
-        const { name, browser } = info;
-        const safeName = name.replace(/[\s()]/g, '_');
-        const tmpFile = `/tmp/dcc_${safeName}.jpg`;
+    try {
+        // 모든 창 소스 가져오기
+        const sources = await desktopCapturer.getSources({ 
+            types: ['window'],
+            thumbnailSize: { width: 800, height: 600 }
+        });
         
-        try {
-            let processName = name;
+        for (const info of appInfos) {
+            const { name, browser } = info;
             
-            // 브라우저 탭인 경우 해당 브라우저 캡처
+            // 앱 이름으로 매칭되는 창 찾기
+            let targetName = name;
             if (browser) {
-                processName = browser === 'Chrome' ? 'Google Chrome' : browser;
+                targetName = browser === 'Chrome' ? 'Google Chrome' : browser;
             }
             
-            // screencapture로 앱 창 캡처
-            execSync(`screencapture -x -o -l $(osascript -e 'tell app "System Events" to tell process "${processName}" to id of window 1' 2>/dev/null || echo 0) ${tmpFile} 2>/dev/null`, { timeout: 3000 });
+            // 창 이름에 앱 이름이 포함된 것 찾기
+            const source = sources.find(s => {
+                const sourceName = s.name.toLowerCase();
+                const searchName = targetName.toLowerCase().replace(/[()]/g, '').trim();
+                return sourceName.includes(searchName) || 
+                       (browser && sourceName.includes(browser.toLowerCase()));
+            });
             
-            if (fs.existsSync(tmpFile)) {
-                const data = fs.readFileSync(tmpFile, { encoding: 'base64' });
-                fs.unlinkSync(tmpFile);
-                results[name] = `data:image/jpeg;base64,${data}`;
+            if (source && source.thumbnail) {
+                const dataUrl = source.thumbnail.toDataURL();
+                results[name] = dataUrl;
             }
-        } catch (e) {
-            // 캡처 실패
         }
+    } catch (e) {
+        console.error('Capture error:', e);
     }
     
     return results;
