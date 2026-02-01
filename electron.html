@@ -1398,8 +1398,6 @@
             
             workspace.innerHTML = appsToShow.map(([key, app]) => {
                 const showProgress = state.settings.showProgress && app.status === 'running';
-                const webUrl = getWebUrl(app.name);
-                const isWebApp = !!webUrl;
                 
                 return `
                     <div class="window ${state.focusedApp === key ? 'focused' : ''}" data-app="${key}">
@@ -1413,46 +1411,22 @@
                                 <span>${t(app.status === 'running' ? 'running' : app.status === 'done' ? 'done' : 'ready')}</span>
                             </div>
                             <div class="window-actions">
-                                <button class="window-btn open-btn" data-app="${key}" title="새 창에서 열기">↗</button>
+                                <button class="window-btn open-btn" data-app="${key}" title="앱으로 전환">↗</button>
                             </div>
                         </div>
                         <div class="window-body" data-app="${key}">
-                            ${isWebApp 
-                                ? `<webview class="window-webview" src="${webUrl}" data-app="${key}"></webview>`
-                                : (app.screenshot 
-                                    ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">`
-                                    : `<div class="window-placeholder" style="cursor: pointer;">
-                                        <div style="font-size: 14px; color: var(--text-secondary);">${app.name}</div>
-                                        <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">데스크탑 앱 - 클릭하여 열기</div>
-                                      </div>`)
+                            ${app.screenshot 
+                                ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">`
+                                : `<div class="window-placeholder">
+                                    <div class="loading-spinner"></div>
+                                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 12px;">화면 캡처 중...</div>
+                                  </div>`
                             }
                             ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:${app.progress}%"></div></div>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
-            
-            function getWebUrl(name) {
-                const n = name.toLowerCase();
-                if (n.includes('claude')) return 'https://claude.ai';
-                if (n.includes('chatgpt') || n.includes('gpt')) return 'https://chat.openai.com';
-                if (n.includes('gemini')) return 'https://gemini.google.com';
-                if (n.includes('perplexity')) return 'https://perplexity.ai';
-                if (n.includes('grok')) return 'https://grok.x.ai';
-                if (n.includes('copilot')) return 'https://copilot.microsoft.com';
-                if (n.includes('poe')) return 'https://poe.com';
-                if (n.includes('midjourney')) return 'https://midjourney.com';
-                if (n.includes('runway')) return 'https://app.runwayml.com';
-                if (n.includes('pika')) return 'https://pika.art';
-                if (n.includes('kling')) return 'https://klingai.com';
-                if (n.includes('luma')) return 'https://lumalabs.ai/dream-machine';
-                if (n.includes('notion')) return 'https://notion.so';
-                if (n.includes('canva')) return 'https://canva.com';
-                if (n.includes('figma')) return 'https://figma.com';
-                if (n.includes('nanobanana') || n.includes('nano')) return 'https://nanobanana.com';
-                // 데스크탑 앱 (Cursor 등)은 null 반환
-                return null;
-            }
             
             // 클릭하면 앱 활성화
             workspace.querySelectorAll('.window-body').forEach(body => {
@@ -2081,6 +2055,16 @@
         // ========== Init ==========
         loadSettings();
         render();
+        
+        // 권한 상태 확인
+        checkPermission();
+        
+        async function checkPermission() {
+            const status = await ipcRenderer.invoke('check-screen-permission');
+            if (status !== 'granted') {
+                toast('⚠️', '화면 캡처 권한이 필요합니다. 시스템 설정에서 Electron을 허용 후 앱을 재시작하세요.');
+            }
+        }
         
         // 앱 시작 시 자동 감지
         autoDetectAI();

@@ -23,6 +23,14 @@ function createWindow() {
     win.loadFile('electron.html');
 }
 
+// 화면 캡처 권한 확인
+ipcMain.handle('check-screen-permission', async () => {
+    const { systemPreferences } = require('electron');
+    const status = systemPreferences.getMediaAccessStatus('screen');
+    console.log('Screen permission status:', status);
+    return status;
+});
+
 // 실행 중인 AI 앱 감지 (데스크탑 앱 + 브라우저 탭)
 ipcMain.handle('get-running-ai-apps', async () => {
     return new Promise(async (resolve) => {
@@ -317,15 +325,28 @@ return windowId`;
 
 // 모든 AI 창 캡처 (desktopCapturer 사용)
 ipcMain.handle('capture-all-windows', async (event, appInfos) => {
-    const { desktopCapturer } = require('electron');
+    const { desktopCapturer, systemPreferences } = require('electron');
     const results = {};
+    
+    // 화면 녹화 권한 확인
+    const hasAccess = systemPreferences.getMediaAccessStatus('screen');
+    console.log('Screen capture permission:', hasAccess);
+    
+    if (hasAccess !== 'granted') {
+        console.log('Screen capture not granted, requesting...');
+        // 권한이 없으면 빈 결과 반환
+        return results;
+    }
     
     try {
         // 모든 창 소스 가져오기
         const sources = await desktopCapturer.getSources({ 
             types: ['window'],
-            thumbnailSize: { width: 800, height: 600 }
+            thumbnailSize: { width: 1200, height: 800 },
+            fetchWindowIcons: false
         });
+        
+        console.log('Found sources:', sources.map(s => s.name));
         
         for (const info of appInfos) {
             const { name, browser } = info;
@@ -337,16 +358,22 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
             }
             
             // 창 이름에 앱 이름이 포함된 것 찾기
+            const searchTerms = [
+                targetName.toLowerCase().replace(/[()]/g, '').trim(),
+                browser ? browser.toLowerCase() : null
+            ].filter(Boolean);
+            
             const source = sources.find(s => {
                 const sourceName = s.name.toLowerCase();
-                const searchName = targetName.toLowerCase().replace(/[()]/g, '').trim();
-                return sourceName.includes(searchName) || 
-                       (browser && sourceName.includes(browser.toLowerCase()));
+                return searchTerms.some(term => sourceName.includes(term));
             });
             
             if (source && source.thumbnail) {
                 const dataUrl = source.thumbnail.toDataURL();
                 results[name] = dataUrl;
+                console.log('Captured:', name);
+            } else {
+                console.log('Not found:', name, 'searched:', searchTerms);
             }
         }
     } catch (e) {
