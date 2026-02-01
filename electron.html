@@ -2056,13 +2056,19 @@
         loadSettings();
         render();
         
-        // 권한 상태 확인
+        // 권한 상태 확인 및 창 목록 디버깅
         checkPermission();
         
         async function checkPermission() {
             const status = await ipcRenderer.invoke('check-screen-permission');
             if (status !== 'granted') {
-                toast('⚠️', '화면 캡처 권한이 필요합니다. 시스템 설정에서 Electron을 허용 후 앱을 재시작하세요.');
+                toast('⚠️', '화면 캡처 권한 필요. 시스템 설정에서 Electron 허용 후 재시작.');
+            } else {
+                // 창 목록 확인
+                const windows = await ipcRenderer.invoke('get-window-list');
+                if (windows && windows.length > 0) {
+                    console.log('Available windows:', windows);
+                }
             }
         }
         

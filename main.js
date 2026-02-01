@@ -29,6 +29,20 @@ ipcMain.handle('check-screen-permission', async () => {
     return systemPreferences.getMediaAccessStatus('screen');
 });
 
+// 창 목록 가져오기 (디버깅용)
+ipcMain.handle('get-window-list', async () => {
+    const { desktopCapturer } = require('electron');
+    try {
+        const sources = await desktopCapturer.getSources({ 
+            types: ['window'],
+            thumbnailSize: { width: 1, height: 1 }
+        });
+        return sources.map(s => s.name);
+    } catch (e) {
+        return [];
+    }
+});
+
 // 실행 중인 AI 앱 감지 (데스크탑 앱 + 브라우저 탭)
 ipcMain.handle('get-running-ai-apps', async () => {
     return new Promise(async (resolve) => {
@@ -341,25 +355,46 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
             fetchWindowIcons: false
         });
         
+        // DCC 자체 창 제외
+        const filteredSources = sources.filter(s => !s.name.includes('DCC'));
+        
         for (const info of appInfos) {
             const { name, browser } = info;
+            const nameLower = name.toLowerCase();
             
-            // 앱 이름으로 매칭되는 창 찾기
-            let targetName = name;
+            let source = null;
+            
+            // 브라우저 탭인 경우
             if (browser) {
-                targetName = browser === 'Chrome' ? 'Google Chrome' : browser;
+                // 탭 제목에서 서비스명 찾기
+                if (nameLower.includes('gemini')) {
+                    source = filteredSources.find(s => s.name.toLowerCase().includes('gemini'));
+                } else if (nameLower.includes('claude')) {
+                    source = filteredSources.find(s => s.name.toLowerCase().includes('claude'));
+                } else if (nameLower.includes('chatgpt') || nameLower.includes('gpt')) {
+                    source = filteredSources.find(s => s.name.toLowerCase().includes('chatgpt') || s.name.toLowerCase().includes('gpt'));
+                } else if (nameLower.includes('perplexity')) {
+                    source = filteredSources.find(s => s.name.toLowerCase().includes('perplexity'));
+                }
+            } else {
+                // 데스크탑 앱인 경우 - 창 제목 패턴으로 찾기
+                if (nameLower.includes('cursor')) {
+                    // Cursor 창은 "파일명 — 폴더명" 형식
+                    source = filteredSources.find(s => s.name.includes(' — ') && !s.name.includes('DCC'));
+                } else if (nameLower.includes('claude')) {
+                    source = filteredSources.find(s => s.name.toLowerCase().includes('claude'));
+                } else if (nameLower.includes('notion')) {
+                    // Notion은 문서 제목으로 표시되므로 직접 매칭 어려움
+                    // 알려진 Notion 패턴 또는 첫 번째 미매칭 창 사용
+                    source = filteredSources.find(s => {
+                        const sn = s.name.toLowerCase();
+                        return sn.includes('notion') || 
+                               (!sn.includes('gemini') && !sn.includes('claude') && 
+                                !sn.includes('cursor') && !sn.includes(' — ') &&
+                                !sn.includes('nprotect') && !sn.includes('security'));
+                    });
+                }
             }
-            
-            // 창 이름에 앱 이름이 포함된 것 찾기
-            const searchTerms = [
-                targetName.toLowerCase().replace(/[()]/g, '').trim(),
-                browser ? browser.toLowerCase() : null
-            ].filter(Boolean);
-            
-            const source = sources.find(s => {
-                const sourceName = s.name.toLowerCase();
-                return searchTerms.some(term => sourceName.includes(term));
-            });
             
             if (source && source.thumbnail) {
                 const dataUrl = source.thumbnail.toDataURL();
