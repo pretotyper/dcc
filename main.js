@@ -9,14 +9,17 @@ function createWindow() {
         minWidth: 800,
         minHeight: 600,
         titleBarStyle: 'hiddenInset',
-        trafficLightPosition: { x: 15, y: 15 },
+        trafficLightPosition: { x: 15, y: 18 },
         backgroundColor: '#18181b',
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            webviewTag: true
         }
     });
 
+    // 전체화면으로 시작
+    win.maximize();
     win.loadFile('electron.html');
 }
 
