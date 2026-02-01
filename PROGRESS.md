@@ -37,69 +37,79 @@ AI 도구들을 한 화면에서 관리하고 조작할 수 있는 macOS Electro
 
 ---
 
-## 미해결 문제
+## 해결된 문제 (2026-02-01)
 
-### 1. 앱 자동 감지 타이밍 문제
+### 1. ✅ 앱 자동 감지 타이밍 문제
 **증상**: DCC 실행 후 Antigravity를 켜면 감지 안 됨
 
-**원인 추정**:
-- 자동 감지가 10초 간격으로만 실행됨
-- 또는 AppleScript 실행 시 권한 문제
+**해결**:
+- 자동 감지 주기를 10초 → 3초로 단축
+- `setInterval(autoDetectAI, 3000);`
 
-**해결 방안**:
-```javascript
-// 더 짧은 간격으로 감지 (5초)
-setInterval(autoDetectAI, 5000);
-
-// 또는 창 활성화 이벤트 감지
-app.on('browser-window-focus', () => autoDetectAI());
-```
-
-### 2. 창 캡처 매칭 문제
+### 2. ✅ 창 캡처 매칭 문제
 **증상**: Cursor 화면이 Antigravity에 표시됨
 
-**원인**: 
-- Cursor와 Antigravity 둘 다 Electron 앱
-- 창 제목으로 구분해야 하는데, 정확한 창 제목 패턴을 모름
+**해결**:
+- 더 정밀한 창 매칭 로직 적용
+- 앱별 창 제목 패턴 구분:
+  - Cursor: em dash(—) 패턴 사용
+  - Antigravity: 이름에 'antigravity' 포함 또는 일반 hyphen(-) 사용
+- 이미 매칭된 창 중복 사용 방지 (`usedSources` Set)
+- 디버깅 로그 추가 (Console에서 창 매칭 상태 확인 가능)
 
-**디버깅 필요**:
-Console에서 `=== ALL WINDOWS ===` 로그 확인하여 각 앱의 정확한 창 제목 확인
-
-**예상 패턴**:
-- Cursor: `"파일명 — 폴더명"` (em dash 사용)
-- Antigravity: `"파일명 - Antigravity"` 또는 다른 패턴
-
-### 3. Webview 세션 혼선
+### 3. ✅ Webview 세션 혼선
 **증상**: Claude 로그인 시 Notion 화면도 바뀜
 
-**원인 추정**:
-- partition이 제대로 적용 안 됨
-- 또는 캐시 문제
-
-**확인 필요**:
-```javascript
-// 각 webview의 partition 확인
-partition="persist:claude"
-partition="persist:notion"
-// 다른 이름으로 완전 분리되어야 함
-```
+**해결**:
+- 서비스별 고유 partition 이름 매핑 (`partitionMap`)
+- 예: `claude` → `persist:claude`, `chatgpt` → `persist:chatgpt`
+- 브라우저별로도 분리: `claudechrome` → `persist:claude_chrome`
+- 새로운 `getPartitionName()` 함수로 안전하게 partition 이름 생성
 
 ---
 
-## 다음 스레드에서 할 작업
+## 업데이트 (2026-02-01 오후)
 
-### 우선순위 1: 앱 감지 문제 해결
-1. Console에서 `=== ALL WINDOWS ===` 로그 확인
-2. Antigravity 창 제목 정확히 파악
-3. 창 매칭 로직 수정
+### 1. 목적별 레이아웃 기억
+- 각 목적(전체/리서치/코딩/크리에이티브)별로 마지막 레이아웃 저장
+- 목적 전환 시 해당 목적의 저장된 레이아웃으로 자동 변경
+- 기본 레이아웃: Focus (1개)
 
-### 우선순위 2: 자동 감지 개선
-1. 감지 주기 단축 (10초 → 3초)
-2. "AI 감지" 버튼 클릭 시 즉시 감지
+### 2. 목적 전환 시 Webview 유지
+- 목적 전환 시 `applyPurposeFilter()`로 CSS만 변경 (webview 재로드 없음)
+- 모든 앱을 DOM에 렌더링하고 목적에 따라 표시/숨김 처리
 
-### 우선순위 3: Webview 세션 문제
-1. partition 적용 확인
-2. 필요 시 webview 캐시 완전 분리
+### 3. 봇 감지 방지
+- 동일 웹 서비스 최대 2개까지만 허용
+- Webview 로딩 시 1.5초 간격으로 순차 로딩
+- 앱 이름에서 `(Chrome)`, `(Safari)` 자동 제거
+
+### 4. 앱 상태 저장 개선
+- `monitored` 상태 저장/복원 (새로고침해도 마지막 상태 유지)
+- 연결된 앱 제거 시 확인 모달 표시
+
+### 5. UI/UX 개선
+- 연결된 앱 옆 `+` 버튼으로 앱 추가 (큰 버튼 제거)
+- 마지막 결과 복사 버튼 제거 (단축키 `⌘⇧C`로만 동작)
+- 비활성화된 앱 더블클릭/드래그로 다시 활성화
+- 작업 완료 시 토스트 알림 (프롬프트 미리보기 포함)
+- 모든 토스트 메시지 다국어 지원 (한국어/영어)
+- 단축키 하단 고정
+
+### 6. 작업 기록 (Activity Timeline)
+- 웹 AI 작업 시작/완료 감지
+- 프롬프트 요약 표시 (50자까지)
+- 상태는 색상으로 표시 (녹색 깜빡임=진행중, 초록=완료)
+- 최대 50개 기록 유지
+
+---
+
+## 다음 작업 (추후 개선 사항)
+
+### 기능 개선
+1. 창 활성화 이벤트 감지 추가 (`app.on('browser-window-focus')`)
+2. webview 캐시 명시적 분리 (필요 시)
+3. 더 많은 AI 서비스 지원
 
 ---
 

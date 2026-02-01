@@ -93,13 +93,47 @@ return appList`;
             // 디버깅: 모든 실행 중인 앱 목록을 결과에 추가
             results.push({ name: '__DEBUG_ALL_APPS__', allApps: running });
             
-            running.forEach(app => {
+            // 각 앱의 창 제목도 가져오기
+            for (const app of running) {
                 const appLower = app.toLowerCase();
-                if (desktopAiApps.some(ai => appLower.includes(ai.toLowerCase()))) {
-                    results.push({ name: app, type: 'desktop', browser: null });
+                const matchedAi = desktopAiApps.find(ai => appLower.includes(ai.toLowerCase()));
+                if (matchedAi) {
+                    let windowTitle = null;
+                    
+                    // Claude Desktop은 AppleScript 접근이 안 되므로 건너뛰기
+                    const skipAppleScript = ['claude'].some(skip => appLower.includes(skip));
+                    
+                    if (!skipAppleScript) {
+                        try {
+                            // 창이 있는지 먼저 확인하고 가져오기
+                            const windowScript = `
+                                tell application "System Events"
+                                    tell process "${app}"
+                                        if (count of windows) > 0 then
+                                            return name of window 1
+                                        else
+                                            return ""
+                                        end if
+                                    end tell
+                                end tell
+                            `;
+                            windowTitle = execSync(`osascript -e '${windowScript}'`, { encoding: 'utf-8', timeout: 2000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+                        } catch (e) {
+                            // 오류 무시
+                        }
+                    }
+                    
+                    results.push({ 
+                        name: app, 
+                        type: 'desktop', 
+                        browser: null,
+                        windowTitle: windowTitle || null
+                    });
                 }
-            });
-        } catch (e) {}
+            }
+        } catch (e) {
+            console.error('App detection error:', e);
+        }
         
         // 2. Chrome AI 탭 감지
         const chromeScript = `
@@ -117,7 +151,7 @@ tell application "System Events"
                     else if tabURL contains "chat.openai.com" or tabURL contains "chatgpt.com" then
                         set end of tabResults to "ChatGPT (Chrome)|" & tabURL
                     else if tabURL contains "gemini.google.com" then
-                        set end of tabResults to "Gemini (Chrome)|" & tabURL
+                        set end of tabResults to "Gemini|" & tabURL
                     else if tabURL contains "perplexity.ai" then
                         set end of tabResults to "Perplexity (Chrome)|" & tabURL
                     else if tabURL contains "grok.x.ai" then
@@ -205,7 +239,7 @@ tell application "System Events"
                     else if tabURL contains "chat.openai.com" or tabURL contains "chatgpt.com" then
                         set end of tabResults to "ChatGPT (Safari)|" & tabURL
                     else if tabURL contains "gemini.google.com" then
-                        set end of tabResults to "Gemini (Safari)|" & tabURL
+                        set end of tabResults to "Gemini|" & tabURL
                     else if tabURL contains "perplexity.ai" then
                         set end of tabResults to "Perplexity (Safari)|" & tabURL
                     else if tabURL contains "grok.x.ai" then
@@ -266,56 +300,47 @@ ipcMain.handle('activate-app', async (event, appName) => {
 // 창 배치 (Split View 스타일)
 ipcMain.handle('arrange-windows', async (event, apps, layout) => {
     return new Promise((resolve) => {
-        // 화면 크기 가져오기
-        const screenScript = `
-tell application "Finder"
-    set screenBounds to bounds of window of desktop
-end tell
-return screenBounds`;
+        // Electron screen API로 화면 크기 가져오기 (Finder 호출 불필요)
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        const menuBarHeight = 25;
         
-        exec(`osascript -e '${screenScript}'`, (err, screenOut) => {
-            // 기본 화면 크기 사용
-            const screenWidth = 1920;
-            const screenHeight = 1080;
-            const menuBarHeight = 25;
-            
-            let positions = [];
-            
-            if (layout === 'split' && apps.length >= 2) {
-                positions = [
-                    { x: 0, y: menuBarHeight, w: screenWidth / 2, h: screenHeight - menuBarHeight },
-                    { x: screenWidth / 2, y: menuBarHeight, w: screenWidth / 2, h: screenHeight - menuBarHeight }
-                ];
-            } else if (layout === 'grid' && apps.length >= 4) {
-                positions = [
-                    { x: 0, y: menuBarHeight, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
-                    { x: screenWidth / 2, y: menuBarHeight, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
-                    { x: 0, y: menuBarHeight + (screenHeight - menuBarHeight) / 2, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
-                    { x: screenWidth / 2, y: menuBarHeight + (screenHeight - menuBarHeight) / 2, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 }
-                ];
-            } else if (layout === 'focus' && apps.length >= 1) {
-                positions = [
-                    { x: 100, y: menuBarHeight + 50, w: screenWidth - 200, h: screenHeight - menuBarHeight - 100 }
-                ];
-            }
-            
-            // 각 앱 창 위치 조정
-            apps.forEach((appName, i) => {
-                if (positions[i]) {
-                    const pos = positions[i];
-                    const moveScript = `
+        let positions = [];
+        
+        if (layout === 'split' && apps.length >= 2) {
+            positions = [
+                { x: 0, y: menuBarHeight, w: screenWidth / 2, h: screenHeight - menuBarHeight },
+                { x: screenWidth / 2, y: menuBarHeight, w: screenWidth / 2, h: screenHeight - menuBarHeight }
+            ];
+        } else if (layout === 'grid' && apps.length >= 4) {
+            positions = [
+                { x: 0, y: menuBarHeight, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
+                { x: screenWidth / 2, y: menuBarHeight, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
+                { x: 0, y: menuBarHeight + (screenHeight - menuBarHeight) / 2, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 },
+                { x: screenWidth / 2, y: menuBarHeight + (screenHeight - menuBarHeight) / 2, w: screenWidth / 2, h: (screenHeight - menuBarHeight) / 2 }
+            ];
+        } else if (layout === 'focus' && apps.length >= 1) {
+            positions = [
+                { x: 100, y: menuBarHeight + 50, w: screenWidth - 200, h: screenHeight - menuBarHeight - 100 }
+            ];
+        }
+        
+        // 각 앱 창 위치 조정
+        apps.forEach((appName, i) => {
+            if (positions[i]) {
+                const pos = positions[i];
+                const moveScript = `
 tell application "System Events"
     tell process "${appName}"
         set position of window 1 to {${pos.x}, ${pos.y}}
         set size of window 1 to {${pos.w}, ${pos.h}}
     end tell
 end tell`;
-                    exec(`osascript -e '${moveScript}'`);
-                }
-            });
-            
-            resolve(true);
+                exec(`osascript -e '${moveScript}'`);
+            }
         });
+        
+        resolve(true);
     });
 });
 
@@ -395,14 +420,37 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
         const chromeWindow = filteredSources.find(s => s.name.includes('Google Chrome') || s.name.includes('Chrome'));
         const safariWindow = filteredSources.find(s => s.name.includes('Safari') && !s.name.includes('Preferences'));
         
-        for (const info of appInfos) {
-            const { name, browser } = info;
+        // 이미 매칭된 창 추적 (중복 방지)
+        const usedSources = new Set();
+        
+        // 앱 정보를 정렬: Antigravity를 Cursor보다 먼저 처리 (더 구체적인 것 먼저)
+        const sortedAppInfos = [...appInfos].sort((a, b) => {
+            const priority = { 'antigravity': 0, 'windsurf': 1, 'cursor': 2 };
+            const aKey = a.name.toLowerCase();
+            const bKey = b.name.toLowerCase();
+            const aPri = Object.entries(priority).find(([k]) => aKey.includes(k))?.[1] ?? 99;
+            const bPri = Object.entries(priority).find(([k]) => bKey.includes(k))?.[1] ?? 99;
+            return aPri - bPri;
+        });
+        
+        for (const info of sortedAppInfos) {
+            const { name, browser, windowTitle } = info;
             const nameLower = name.toLowerCase();
             
             let source = null;
             
+            // 0. windowTitle이 있으면 우선 사용 (가장 정확한 매칭)
+            if (windowTitle && !browser) {
+                source = filteredSources.find(s => {
+                    if (usedSources.has(s.id)) return false;
+                    return s.name === windowTitle || 
+                           s.name.includes(windowTitle) || 
+                           windowTitle.includes(s.name);
+                });
+            }
+            
             // 브라우저 탭인 경우
-            if (browser) {
+            if (!source && browser) {
                 // 1. 먼저 탭 제목으로 직접 찾기
                 const searchTerms = [];
                 if (nameLower.includes('gemini')) searchTerms.push('gemini');
@@ -413,54 +461,107 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
                 
                 // 탭 제목으로 찾기
                 source = filteredSources.find(s => {
+                    if (usedSources.has(s.id)) return false;
                     const sn = s.name.toLowerCase();
                     return searchTerms.some(term => sn.includes(term));
                 });
                 
                 // 2. 못 찾으면 브라우저 창 자체 캡처
                 if (!source) {
-                    if (browser === 'Chrome') {
+                    if (browser === 'Chrome' && !usedSources.has(chromeWindow?.id)) {
                         source = chromeWindow;
-                    } else if (browser === 'Safari') {
+                    } else if (browser === 'Safari' && !usedSources.has(safariWindow?.id)) {
                         source = safariWindow;
                     }
                 }
-            } else {
-                // 데스크탑 앱인 경우 - 창 제목 패턴으로 찾기
+            } else if (!source) {
+                // 데스크탑 앱인 경우 - windowTitle로 못 찾은 경우
+                const appNameClean = nameLower.replace(/[\s()]/g, '');
                 
-                // 1. 먼저 창 제목에 앱 이름이 포함된 것 찾기
-                source = filteredSources.find(s => {
-                    const sn = s.name.toLowerCase();
-                    return sn.includes(nameLower) && !sn.includes('dcc');
-                });
-                
-                // 2. 못 찾으면 앱별 특수 패턴으로 찾기
-                if (!source) {
-                    if (nameLower.includes('cursor')) {
-                        // Cursor 창은 "파일명 — 폴더명" 형식 (em dash 사용)
-                        source = filteredSources.find(s => 
-                            s.name.includes(' — ') && 
-                            !s.name.toLowerCase().includes('antigravity') &&
-                            !s.name.includes('DCC')
-                        );
-                    } else if (nameLower.includes('antigravity')) {
-                        // Antigravity 창 찾기
+                // Antigravity 특별 처리
+                if (appNameClean === 'antigravity') {
+                    source = filteredSources.find(s => {
+                        if (usedSources.has(s.id)) return false;
+                        const sn = s.name.toLowerCase();
+                        return sn.includes('antigravity') || sn.includes('(anti)') || sn.includes('anti)');
+                    });
+                    if (!source) {
                         source = filteredSources.find(s => {
-                            const sn = s.name.toLowerCase();
-                            return sn.includes('antigravity') || 
-                                   (sn.includes(' - ') && !sn.includes(' — ') && !sn.includes('chrome') && !sn.includes('cursor'));
+                            if (usedSources.has(s.id)) return false;
+                            return s.id.toLowerCase().includes('anti');
                         });
-                    } else if (nameLower.includes('claude')) {
-                        source = filteredSources.find(s => s.name.toLowerCase().includes('claude'));
-                    } else if (nameLower.includes('notion')) {
-                        source = filteredSources.find(s => s.name.toLowerCase().includes('notion'));
                     }
+                    if (!source) {
+                        const candidates = filteredSources.filter(s => {
+                            if (usedSources.has(s.id)) return false;
+                            const sn = s.name.toLowerCase();
+                            return !s.name.includes(' — ') && s.name.includes(' - ') &&
+                                   !sn.includes('chrome') && !sn.includes('safari') && !sn.includes('dcc');
+                        });
+                        if (candidates.length > 0) source = candidates[0];
+                    }
+                }
+                // Cursor 처리
+                else if (appNameClean === 'cursor') {
+                    source = filteredSources.find(s => {
+                        if (usedSources.has(s.id)) return false;
+                        return s.name.toLowerCase().includes('cursor');
+                    });
+                    if (!source) {
+                        source = filteredSources.find(s => {
+                            if (usedSources.has(s.id)) return false;
+                            return s.name.includes(' — ') && !s.name.includes('DCC');
+                        });
+                    }
+                }
+                // Notion 특별 처리
+                else if (appNameClean === 'notion') {
+                    source = filteredSources.find(s => {
+                        if (usedSources.has(s.id)) return false;
+                        return s.name.toLowerCase().includes('notion');
+                    });
+                    if (!source) {
+                        try {
+                            const notionWindowTitle = execSync(`osascript -e 'tell application "System Events" to tell process "Notion" to get name of window 1'`, { encoding: 'utf-8', timeout: 2000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+                            if (notionWindowTitle) {
+                                source = filteredSources.find(s => {
+                                    if (usedSources.has(s.id)) return false;
+                                    return s.name === notionWindowTitle || s.name.includes(notionWindowTitle);
+                                });
+                            }
+                        } catch (e) {}
+                    }
+                }
+                // Claude Desktop 특별 처리
+                else if (appNameClean === 'claude' || nameLower.includes('claude')) {
+                    // Claude Desktop 앱 창 찾기
+                    source = filteredSources.find(s => {
+                        if (usedSources.has(s.id)) return false;
+                        const sn = s.name.toLowerCase();
+                        // Claude 앱 창은 보통 "Claude" 또는 대화 제목을 포함
+                        return sn.includes('claude') || s.name === 'Claude';
+                    });
+                    // 못 찾으면 electron 앱 특성 활용 (Claude Desktop은 Electron 기반)
+                    if (!source) {
+                        source = filteredSources.find(s => {
+                            if (usedSources.has(s.id)) return false;
+                            // Claude Desktop 창 ID 패턴 확인
+                            return s.id.toLowerCase().includes('claude');
+                        });
+                    }
+                }
+                // 기타 앱
+                else {
+                    source = filteredSources.find(s => {
+                        if (usedSources.has(s.id)) return false;
+                        return s.name.toLowerCase().includes(appNameClean);
+                    });
                 }
             }
             
             if (source && source.thumbnail) {
-                const dataUrl = source.thumbnail.toDataURL();
-                results[name] = dataUrl;
+                usedSources.add(source.id);
+                results[name] = source.thumbnail.toDataURL();
             }
         }
     } catch (e) {
@@ -470,48 +571,60 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
     return results;
 });
 
-// 브라우저에서 AI 탭 찾기
+// 브라우저에서 AI 탭 찾기 (안전한 방식 - 앱 자동 실행 방지)
 ipcMain.handle('get-browser-ai-tabs', async () => {
     return new Promise((resolve) => {
         const results = [];
         
-        // Chrome 탭 확인
+        // Chrome 탭 확인 - 실행 중인 경우에만
         const chromeScript = `
-tell application "Google Chrome"
-    set tabList to {}
-    repeat with w in windows
-        repeat with t in tabs of w
-            set tabURL to URL of t
-            if tabURL contains "claude.ai" or tabURL contains "chat.openai.com" or tabURL contains "gemini.google.com" or tabURL contains "perplexity.ai" then
-                set end of tabList to {title of t, tabURL}
-            end if
-        end repeat
-    end repeat
-    return tabList
+tell application "System Events"
+    if exists process "Google Chrome" then
+        tell application "Google Chrome"
+            set tabList to {}
+            repeat with w in windows
+                repeat with t in tabs of w
+                    set tabURL to URL of t
+                    if tabURL contains "claude.ai" or tabURL contains "chat.openai.com" or tabURL contains "gemini.google.com" or tabURL contains "perplexity.ai" then
+                        set end of tabList to {title of t, tabURL}
+                    end if
+                end repeat
+            end repeat
+            return tabList
+        end tell
+    else
+        return {}
+    end if
 end tell`;
         
         exec(`osascript -e '${chromeScript}'`, (err, out) => {
-            if (!err && out.trim()) {
+            if (!err && out.trim() && out.trim() !== '{}') {
                 results.push({ browser: 'Chrome', tabs: out.trim() });
             }
             
-            // Safari도 확인
+            // Safari도 확인 - 실행 중인 경우에만
             const safariScript = `
-tell application "Safari"
-    set tabList to {}
-    repeat with w in windows
-        repeat with t in tabs of w
-            set tabURL to URL of t
-            if tabURL contains "claude.ai" or tabURL contains "chat.openai.com" or tabURL contains "gemini.google.com" or tabURL contains "perplexity.ai" then
-                set end of tabList to {name of t, tabURL}
-            end if
-        end repeat
-    end repeat
-    return tabList
+tell application "System Events"
+    if exists process "Safari" then
+        tell application "Safari"
+            set tabList to {}
+            repeat with w in windows
+                repeat with t in tabs of w
+                    set tabURL to URL of t
+                    if tabURL contains "claude.ai" or tabURL contains "chat.openai.com" or tabURL contains "gemini.google.com" or tabURL contains "perplexity.ai" then
+                        set end of tabList to {name of t, tabURL}
+                    end if
+                end repeat
+            end repeat
+            return tabList
+        end tell
+    else
+        return {}
+    end if
 end tell`;
             
             exec(`osascript -e '${safariScript}'`, (err2, out2) => {
-                if (!err2 && out2.trim()) {
+                if (!err2 && out2.trim() && out2.trim() !== '{}') {
                     results.push({ browser: 'Safari', tabs: out2.trim() });
                 }
                 resolve(results);
