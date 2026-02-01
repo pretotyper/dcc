@@ -29,7 +29,7 @@ ipcMain.handle('check-screen-permission', async () => {
     return systemPreferences.getMediaAccessStatus('screen');
 });
 
-// 창 목록 가져오기 (디버깅용)
+// 창 목록 가져오기 (디버깅용 - 상세 정보)
 ipcMain.handle('get-window-list', async () => {
     const { desktopCapturer } = require('electron');
     try {
@@ -37,7 +37,8 @@ ipcMain.handle('get-window-list', async () => {
             types: ['window'],
             thumbnailSize: { width: 1, height: 1 }
         });
-        return sources.map(s => s.name);
+        // 창 이름과 ID 반환
+        return sources.map(s => ({ name: s.name, id: s.id }));
     } catch (e) {
         return [];
     }
@@ -48,21 +49,53 @@ ipcMain.handle('get-running-ai-apps', async () => {
     return new Promise(async (resolve) => {
         const results = [];
         
-        // 1. 데스크탑 AI 앱 감지
-        const desktopAiApps = ['Claude', 'Cursor', 'Notion'];
+        // 1. 데스크탑 AI 앱 감지 - 앱 번들 이름 기반
+        const desktopAiApps = [
+            // AI 어시스턴트
+            'Claude', 'ChatGPT', 'Copilot',
+            // 코딩/개발
+            'Cursor', 'Antigravity', 'Windsurf', 'Zed', 'VS Code', 'Visual Studio Code', 'Code',
+            'Android Studio', 'Xcode', 'IntelliJ', 'WebStorm', 'PyCharm',
+            // 생산성/노트
+            'Notion', 'Obsidian', 'Craft', 'Bear', 'Roam',
+            // 디자인
+            'Figma', 'Sketch', 'Framer'
+        ];
+        
+        // 앱 번들 이름으로 실행 중인 앱 가져오기
         const script = `
+set appList to {}
 tell application "System Events"
-    set runningApps to name of every process whose background only is false
+    set allProcesses to every process whose background only is false
+    repeat with proc in allProcesses
+        try
+            set appFile to application file of proc
+            set appName to name of appFile
+            -- .app 확장자 제거
+            if appName ends with ".app" then
+                set appName to text 1 thru -5 of appName
+            end if
+            set end of appList to appName
+        on error
+            -- 앱 파일이 없으면 프로세스 이름 사용
+            set end of appList to name of proc
+        end try
+    end repeat
 end tell
-return runningApps`;
+return appList`;
         
         try {
             const stdout = await new Promise((res, rej) => {
                 exec(`osascript -e '${script}'`, (err, out) => err ? rej(err) : res(out));
             });
             const running = stdout.trim().split(', ');
+            
+            // 디버깅: 모든 실행 중인 앱 목록을 결과에 추가
+            results.push({ name: '__DEBUG_ALL_APPS__', allApps: running });
+            
             running.forEach(app => {
-                if (desktopAiApps.some(ai => app.includes(ai))) {
+                const appLower = app.toLowerCase();
+                if (desktopAiApps.some(ai => appLower.includes(ai.toLowerCase()))) {
                     results.push({ name: app, type: 'desktop', browser: null });
                 }
             });
@@ -358,6 +391,10 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
         // DCC 자체 창 제외
         const filteredSources = sources.filter(s => !s.name.includes('DCC'));
         
+        // 브라우저 창 미리 찾기
+        const chromeWindow = filteredSources.find(s => s.name.includes('Google Chrome') || s.name.includes('Chrome'));
+        const safariWindow = filteredSources.find(s => s.name.includes('Safari') && !s.name.includes('Preferences'));
+        
         for (const info of appInfos) {
             const { name, browser } = info;
             const nameLower = name.toLowerCase();
@@ -366,33 +403,58 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
             
             // 브라우저 탭인 경우
             if (browser) {
-                // 탭 제목에서 서비스명 찾기
-                if (nameLower.includes('gemini')) {
-                    source = filteredSources.find(s => s.name.toLowerCase().includes('gemini'));
-                } else if (nameLower.includes('claude')) {
-                    source = filteredSources.find(s => s.name.toLowerCase().includes('claude'));
-                } else if (nameLower.includes('chatgpt') || nameLower.includes('gpt')) {
-                    source = filteredSources.find(s => s.name.toLowerCase().includes('chatgpt') || s.name.toLowerCase().includes('gpt'));
-                } else if (nameLower.includes('perplexity')) {
-                    source = filteredSources.find(s => s.name.toLowerCase().includes('perplexity'));
+                // 1. 먼저 탭 제목으로 직접 찾기
+                const searchTerms = [];
+                if (nameLower.includes('gemini')) searchTerms.push('gemini');
+                else if (nameLower.includes('claude')) searchTerms.push('claude');
+                else if (nameLower.includes('chatgpt') || nameLower.includes('gpt')) searchTerms.push('chatgpt', 'gpt');
+                else if (nameLower.includes('perplexity')) searchTerms.push('perplexity');
+                else if (nameLower.includes('notion')) searchTerms.push('notion');
+                
+                // 탭 제목으로 찾기
+                source = filteredSources.find(s => {
+                    const sn = s.name.toLowerCase();
+                    return searchTerms.some(term => sn.includes(term));
+                });
+                
+                // 2. 못 찾으면 브라우저 창 자체 캡처
+                if (!source) {
+                    if (browser === 'Chrome') {
+                        source = chromeWindow;
+                    } else if (browser === 'Safari') {
+                        source = safariWindow;
+                    }
                 }
             } else {
                 // 데스크탑 앱인 경우 - 창 제목 패턴으로 찾기
-                if (nameLower.includes('cursor')) {
-                    // Cursor 창은 "파일명 — 폴더명" 형식
-                    source = filteredSources.find(s => s.name.includes(' — ') && !s.name.includes('DCC'));
-                } else if (nameLower.includes('claude')) {
-                    source = filteredSources.find(s => s.name.toLowerCase().includes('claude'));
-                } else if (nameLower.includes('notion')) {
-                    // Notion은 문서 제목으로 표시되므로 직접 매칭 어려움
-                    // 알려진 Notion 패턴 또는 첫 번째 미매칭 창 사용
-                    source = filteredSources.find(s => {
-                        const sn = s.name.toLowerCase();
-                        return sn.includes('notion') || 
-                               (!sn.includes('gemini') && !sn.includes('claude') && 
-                                !sn.includes('cursor') && !sn.includes(' — ') &&
-                                !sn.includes('nprotect') && !sn.includes('security'));
-                    });
+                
+                // 1. 먼저 창 제목에 앱 이름이 포함된 것 찾기
+                source = filteredSources.find(s => {
+                    const sn = s.name.toLowerCase();
+                    return sn.includes(nameLower) && !sn.includes('dcc');
+                });
+                
+                // 2. 못 찾으면 앱별 특수 패턴으로 찾기
+                if (!source) {
+                    if (nameLower.includes('cursor')) {
+                        // Cursor 창은 "파일명 — 폴더명" 형식 (em dash 사용)
+                        source = filteredSources.find(s => 
+                            s.name.includes(' — ') && 
+                            !s.name.toLowerCase().includes('antigravity') &&
+                            !s.name.includes('DCC')
+                        );
+                    } else if (nameLower.includes('antigravity')) {
+                        // Antigravity 창 찾기
+                        source = filteredSources.find(s => {
+                            const sn = s.name.toLowerCase();
+                            return sn.includes('antigravity') || 
+                                   (sn.includes(' - ') && !sn.includes(' — ') && !sn.includes('chrome') && !sn.includes('cursor'));
+                        });
+                    } else if (nameLower.includes('claude')) {
+                        source = filteredSources.find(s => s.name.toLowerCase().includes('claude'));
+                    } else if (nameLower.includes('notion')) {
+                        source = filteredSources.find(s => s.name.toLowerCase().includes('notion'));
+                    }
                 }
             }
             
@@ -456,6 +518,75 @@ end tell`;
             });
         });
     });
+});
+
+// macOS 알림 DB 읽기 (데스크탑 앱 상태 감지용)
+let lastNotificationTime = Date.now();
+
+ipcMain.handle('get-recent-notifications', async () => {
+    const fs = require('fs');
+    const os = require('os');
+    const { execSync } = require('child_process');
+    
+    const results = [];
+    
+    try {
+        // macOS 알림 DB 경로
+        const homeDir = os.homedir();
+        const dbPath = `${homeDir}/Library/Group Containers/group.com.apple.usernoted/db2/db`;
+        
+        // DB 파일 존재 확인
+        if (!fs.existsSync(dbPath)) {
+            return results;
+        }
+        
+        // sqlite3로 최근 알림 읽기 (마지막 체크 이후)
+        const query = `
+            SELECT 
+                app_id, 
+                title, 
+                subtitle, 
+                body,
+                delivered_date
+            FROM record 
+            WHERE delivered_date > ${(lastNotificationTime / 1000) - 978307200}
+            ORDER BY delivered_date DESC
+            LIMIT 10;
+        `;
+        
+        const result = execSync(`sqlite3 "${dbPath}" "${query}"`, { 
+            encoding: 'utf-8',
+            timeout: 5000
+        });
+        
+        if (result && result.trim()) {
+            const lines = result.trim().split('\n');
+            lines.forEach(line => {
+                const parts = line.split('|');
+                if (parts.length >= 4) {
+                    const appId = parts[0] || '';
+                    // AI 관련 앱만 필터링
+                    const aiKeywords = ['cursor', 'claude', 'notion', 'copilot', 'chatgpt', 'gemini'];
+                    const isAiApp = aiKeywords.some(k => appId.toLowerCase().includes(k));
+                    
+                    if (isAiApp) {
+                        results.push({
+                            app: appId,
+                            title: parts[1] || '',
+                            subtitle: parts[2] || '',
+                            body: parts[3] || ''
+                        });
+                    }
+                }
+            });
+        }
+        
+        lastNotificationTime = Date.now();
+    } catch (e) {
+        // 알림 읽기 실패 (권한 문제 등)
+    }
+    
+    return results;
 });
 
 app.whenReady().then(() => {

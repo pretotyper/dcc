@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -41,6 +42,7 @@
             --perplexity: #06b6d4;
             --midjourney: #f59e0b;
             --notion: #e11d48;
+            --cursor: #f59e0b;
             
             --radius-sm: 6px;
             --radius-md: 8px;
@@ -82,14 +84,14 @@
         }
         
         .logo-text {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 18px;
-            letter-spacing: -0.5px;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: white;
             background: linear-gradient(135deg, var(--accent), #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            padding: 6px 10px;
+            border-radius: 6px;
         }
         
         .header-divider {
@@ -131,6 +133,10 @@
             border-color: rgba(245, 158, 11, 0.3);
             background: var(--status-running-soft);
         }
+        .queue-item.done {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: var(--status-done-soft);
+        }
         
         .queue-dot {
             width: 5px;
@@ -144,6 +150,10 @@
             animation: pulse 2s infinite;
         }
         
+        .queue-item.done .queue-dot {
+            background: var(--status-done);
+        }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -152,8 +162,7 @@
         .queue-name { color: var(--text-secondary); }
         .queue-item.running .queue-name { color: var(--text-primary); }
         
-        .queue-progress {
-            font-family: var(--font-mono);
+        .queue-status-text {
             font-size: 9px;
             color: var(--text-tertiary);
         }
@@ -232,178 +241,6 @@
         }
         
         .settings-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-        
-        /* Add AI Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 300;
-        }
-        
-        .modal-overlay.show { display: flex; }
-        
-        .modal {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            width: 400px;
-            max-height: 80vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .modal-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-subtle);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-title { font-size: 14px; font-weight: 600; }
-        
-        .modal-close {
-            background: transparent;
-            border: none;
-            color: var(--text-tertiary);
-            font-size: 20px;
-            cursor: pointer;
-        }
-        
-        .modal-body {
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .form-group {
-            margin-bottom: 16px;
-        }
-        
-        .form-label {
-            display: block;
-            font-size: 11px;
-            color: var(--text-tertiary);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-size: 13px;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        
-        .form-input::placeholder { color: var(--text-quaternary); }
-        
-        .color-options {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .color-option {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
-        
-        .color-option.selected { border-color: white; }
-        
-        .modal-footer {
-            padding: 16px 20px;
-            border-top: 1px solid var(--border-subtle);
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            cursor: pointer;
-            border: none;
-        }
-        
-        .btn-secondary {
-            background: var(--bg-elevated);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-subtle);
-        }
-        
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-        
-        /* Detected Apps */
-        .detected-section {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border-subtle);
-        }
-        
-        .detected-title {
-            font-size: 11px;
-            color: var(--text-tertiary);
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .detected-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .detected-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
-            background: var(--bg-elevated);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-        }
-        
-        .detected-item:hover { background: var(--bg-hover); }
-        
-        .detected-icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-        }
-        
-        .detected-name { font-size: 12px; flex: 1; }
-        .detected-add { font-size: 16px; color: var(--text-tertiary); }
         
         /* ========== Main ========== */
         .main {
@@ -583,9 +420,30 @@
             font-family: var(--font-mono);
         }
         
-        .action-hint {
+        .shortcuts-list {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 10px;
             color: var(--text-quaternary);
+        }
+        
+        .shortcut-item kbd {
+            background: var(--bg-active);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            min-width: 45px;
             text-align: center;
         }
         
@@ -601,7 +459,13 @@
         .workspace.layout-focus { grid-template-columns: 1fr; }
         .workspace.layout-split { grid-template-columns: 1fr 1fr; }
         .workspace.layout-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-        .workspace.layout-stack { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+        .workspace.layout-stack { 
+            grid-template-columns: 2fr 1fr; 
+            grid-template-rows: 1fr 1fr; 
+        }
+        .workspace.layout-stack .window:first-child {
+            grid-row: 1 / -1;
+        }
         
         /* Window */
         .window {
@@ -610,9 +474,18 @@
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            transition: box-shadow 0.15s ease;
         }
         
         .window.focused { box-shadow: inset 3px 0 0 var(--accent); }
+        
+        .window.dragging {
+            opacity: 0.5;
+        }
+        
+        .window.drag-over {
+            box-shadow: inset 0 0 0 2px var(--accent);
+        }
         
         .window-header {
             height: 36px;
@@ -643,6 +516,7 @@
         .app-dot.perplexity { background: var(--perplexity); }
         .app-dot.midjourney { background: var(--midjourney); }
         .app-dot.notion { background: var(--notion); }
+        .app-dot.cursor { background: var(--cursor); }
         .app-dot.custom { background: var(--app-custom-color, var(--accent)); }
         
         .window-name { font-size: 12px; font-weight: 500; }
@@ -661,7 +535,7 @@
             border-radius: 50%;
         }
         
-        .status-dot.running { background: var(--status-running); }
+        .status-dot.running { background: var(--status-running); animation: pulse 2s infinite; }
         .status-dot.done { background: var(--status-done); }
         .status-dot.idle { background: var(--text-quaternary); }
         
@@ -694,9 +568,10 @@
         .window-body {
             flex: 1;
             position: relative;
-            cursor: pointer;
             overflow: hidden;
         }
+        
+        .window-body.clickable { cursor: pointer; }
         
         .window-screenshot {
             width: 100%;
@@ -723,11 +598,34 @@
             color: var(--text-tertiary);
         }
         
-        .placeholder-icon { font-size: 36px; opacity: 0.4; }
-        .placeholder-text { font-size: 12px; }
-        .placeholder-hint { font-size: 10px; color: var(--text-quaternary); }
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-subtle);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
         
-        .window-overlay {
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .window-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--bg-elevated);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--status-running);
+            transition: width 0.3s ease;
+        }
+        
+        /* Screenshot overlay for desktop apps */
+        .screenshot-overlay {
             position: absolute;
             top: 0;
             left: 0;
@@ -741,7 +639,7 @@
             transition: opacity 0.15s ease;
         }
         
-        .window-body:hover .window-overlay { opacity: 1; }
+        .window-body.clickable:hover .screenshot-overlay { opacity: 1; }
         
         .overlay-btn {
             background: var(--accent);
@@ -755,50 +653,6 @@
         }
         
         .overlay-btn:hover { opacity: 0.9; }
-        
-        .window-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--bg-elevated);
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: var(--status-done);
-            transition: width 0.3s ease;
-        }
-        
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--bg-elevated);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-        
-        .loading-overlay.hidden { display: none; }
-        
-        .loading-spinner {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border-subtle);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .loading-text { font-size: 12px; color: var(--text-tertiary); }
         
         /* ========== Settings Panel ========== */
         .settings-overlay {
@@ -915,6 +769,7 @@
             position: relative;
             cursor: pointer;
             transition: background 0.2s ease;
+            flex-shrink: 0;
         }
         
         .toggle::before {
@@ -988,6 +843,18 @@
         
         .fold-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
         .sidebar.collapsed + .fold-toggle { left: 0; }
+        
+        /* Type badge */
+        .type-badge {
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: var(--bg-active);
+            color: var(--text-tertiary);
+        }
+        
+        .type-badge.web { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .type-badge.desktop { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
     </style>
 </head>
 <body>
@@ -1042,12 +909,12 @@
                     <!-- Purpose -->
                     <div class="purpose-dropdown" id="purposeDropdown">
                         <div class="purpose-trigger" id="purposeTrigger">
-                            <span id="purposeLabel">리서치</span>
+                            <span id="purposeLabel">전체</span>
                             <span>▾</span>
                         </div>
                         <div class="purpose-menu">
-                            <div class="purpose-option" data-purpose="all">전체</div>
-                            <div class="purpose-option active" data-purpose="research">리서치</div>
+                            <div class="purpose-option active" data-purpose="all">전체</div>
+                            <div class="purpose-option" data-purpose="research">리서치</div>
                             <div class="purpose-option" data-purpose="coding">코딩</div>
                             <div class="purpose-option" data-purpose="creative">크리에이티브</div>
                         </div>
@@ -1058,8 +925,7 @@
                         <div class="timeline-header">
                             <span class="section-title">타임라인</span>
                             <div class="scope-toggle">
-                                <button class="scope-btn active" data-scope="purpose" id="scopePurpose">리서치</button>
-                                <button class="scope-btn" data-scope="all">All</button>
+                                <button class="scope-btn active" data-scope="all">All</button>
                             </div>
                         </div>
                         <div class="timeline-list" id="timelineList">
@@ -1073,7 +939,10 @@
                             <span>결과 복사</span>
                             <kbd>⌘T</kbd>
                         </button>
-                        <div class="action-hint">붙여넣기: ⌘⇧V</div>
+                        <div class="shortcuts-list">
+                            <div class="shortcut-item"><kbd>⌥1~4</kbd> <span>레이아웃</span></div>
+                            <div class="shortcut-item"><kbd>⇧1~4</kbd> <span>목적 전환</span></div>
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -1122,63 +991,51 @@
     
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
-    
-    <!-- Add AI Modal -->
-    <div class="modal-overlay" id="addAiModal">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title">AI 앱 추가</span>
-                <button class="modal-close" id="modalClose">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">이름</label>
-                    <input type="text" class="form-input" id="newAppName" placeholder="예: Grok">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">URL</label>
-                    <input type="text" class="form-input" id="newAppUrl" placeholder="https://grok.x.ai">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">색상</label>
-                    <div class="color-options" id="colorOptions">
-                        <div class="color-option selected" data-color="#a78bfa" style="background: #a78bfa"></div>
-                        <div class="color-option" data-color="#10b981" style="background: #10b981"></div>
-                        <div class="color-option" data-color="#3b82f6" style="background: #3b82f6"></div>
-                        <div class="color-option" data-color="#f59e0b" style="background: #f59e0b"></div>
-                        <div class="color-option" data-color="#ef4444" style="background: #ef4444"></div>
-                        <div class="color-option" data-color="#ec4899" style="background: #ec4899"></div>
-                        <div class="color-option" data-color="#06b6d4" style="background: #06b6d4"></div>
-                        <div class="color-option" data-color="#8b5cf6" style="background: #8b5cf6"></div>
-                    </div>
-                </div>
-                
-                <div class="detected-section" id="detectedSection" style="display: none;">
-                    <div class="detected-title">감지된 AI 앱</div>
-                    <div class="detected-list" id="detectedList">
-                        <!-- Rendered dynamically -->
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="modalCancel">취소</button>
-                <button class="btn btn-primary" id="modalAdd">추가</button>
-            </div>
-        </div>
-    </div>
 
     <script>
+        const { ipcRenderer } = require('electron');
+        
+        // ========== 웹 AI URL 매핑 ==========
+        const webAiUrls = {
+            'claude': 'https://claude.ai',
+            'claudechrome': 'https://claude.ai',
+            'claudesafari': 'https://claude.ai',
+            'chatgpt': 'https://chat.openai.com',
+            'chatgptchrome': 'https://chat.openai.com',
+            'gemini': 'https://gemini.google.com',
+            'geminichrome': 'https://gemini.google.com',
+            'perplexity': 'https://perplexity.ai',
+            'perplexitychrome': 'https://perplexity.ai',
+            'grok': 'https://grok.x.ai',
+            'grokchrome': 'https://grok.x.ai',
+            'poe': 'https://poe.com',
+            'poechrome': 'https://poe.com',
+            'midjourney': 'https://midjourney.com',
+            'midjjourneychrome': 'https://midjourney.com'
+        };
+        
+        // 데스크탑 앱 목록 (webview로 조작 불가)
+        const desktopApps = ['cursor', 'notion', 'claudedesktop'];
+        
+        function isWebAI(key) {
+            const keyLower = key.toLowerCase().replace(/[\s()]/g, '');
+            return webAiUrls[keyLower] !== undefined && !desktopApps.some(d => keyLower.includes(d));
+        }
+        
+        function getWebAIUrl(key) {
+            const keyLower = key.toLowerCase().replace(/[\s()]/g, '');
+            return webAiUrls[keyLower] || null;
+        }
+        
         // ========== i18n ==========
         const i18n = {
             ko: {
                 all: '전체', research: '리서치', coding: '코딩', creative: '크리에이티브',
-                running: '실행 중', done: '완료', idle: '대기', ready: '준비됨',
-                allReady: '모든 AI 어시스턴트 준비됨'
+                running: '작업 중', done: '완료', idle: '대기', ready: '준비됨'
             },
             en: {
                 all: 'All', research: 'Research', coding: 'Coding', creative: 'Creative',
-                running: 'Running', done: 'Done', idle: 'Idle', ready: 'Ready',
-                allReady: 'All AI assistants ready'
+                running: 'Running', done: 'Done', idle: 'Idle', ready: 'Ready'
             }
         };
         
@@ -1187,32 +1044,61 @@
             lang: 'ko',
             currentPurpose: 'all',
             currentLayout: 'split',
-            timelineScope: 'all',
             focusedApp: null,
             lastCopied: null,
             settings: { notifyComplete: true, autoFocus: false, showProgress: true },
-            apps: {},  // 감지된 앱만 추가됨
-            purposes: {
-                all: { apps: [] },
-                research: { apps: [] },
-                coding: { apps: [] },
-                creative: { apps: [] }
-            },
-            layouts: {
-                focus: 1, split: 2, grid: 4, stack: 3
-            },
+            apps: {},
+            layouts: { focus: 1, split: 2, grid: 4, stack: 3 },
             timeline: []
         };
         
+        // 앱별 목적 분류
+        const appPurposeMap = {
+            // 코딩/개발
+            'cursor': 'coding', 'copilot': 'coding', 'antigravity': 'coding',
+            'windsurf': 'coding', 'zed': 'coding', 'vscode': 'coding',
+            'visualstudiocode': 'coding', 'androidstudio': 'coding', 'xcode': 'coding',
+            'intellij': 'coding', 'webstorm': 'coding', 'pycharm': 'coding',
+            // 리서치
+            'claude': 'research', 'claudechrome': 'research', 'chatgpt': 'research', 
+            'chatgptchrome': 'research', 'gemini': 'research', 'geminichrome': 'research',
+            'perplexity': 'research', 'perplexitychrome': 'research', 'grok': 'research',
+            'poe': 'research', 'poechrome': 'research',
+            // 크리에이티브
+            'midjourney': 'creative', 'dalle': 'creative', 'runway': 'creative',
+            'notion': 'creative', 'obsidian': 'creative', 'craft': 'creative',
+            'canva': 'creative', 'figma': 'creative', 'sketch': 'creative', 'framer': 'creative',
+            'nanobanana': 'creative', 'pika': 'creative', 'sora': 'creative'
+        };
+        
         function t(key) { return i18n[state.lang][key] || key; }
+        
+        // ========== DOM 상태 분석 셀렉터 ==========
+        const statusSelectors = {
+            claude: {
+                running: '[data-is-streaming="true"], .animate-pulse, [class*="loading"]',
+                done: '.font-claude-message:last-child'
+            },
+            chatgpt: {
+                running: 'button[aria-label="Stop generating"], .result-streaming, [class*="loading"]',
+                done: '[data-message-author-role="assistant"]:last-child'
+            },
+            gemini: {
+                running: '.loading-spinner, [class*="loading"], .thinking',
+                done: '.model-response-text:last-child'
+            },
+            perplexity: {
+                running: '.animate-pulse, [class*="loading"]',
+                done: '.prose:last-child'
+            }
+        };
         
         // ========== Render Functions ==========
         function renderStatusQueue() {
             const container = document.getElementById('statusQueue');
             const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
-            const runningApps = monitoredApps.filter(([_, app]) => app.status === 'running');
+            const activeApps = monitoredApps.filter(([_, app]) => app.status === 'running' || app.status === 'done');
             
-            // 감지된 AI가 없을 때
             if (monitoredApps.length === 0) {
                 container.innerHTML = `
                     <div class="queue-idle">
@@ -1222,8 +1108,7 @@
                 return;
             }
             
-            // 작업 중인 AI가 없을 때 (모두 대기 중)
-            if (runningApps.length === 0) {
+            if (activeApps.length === 0) {
                 container.innerHTML = `
                     <div class="queue-idle">
                         <div class="queue-idle-dot"></div>
@@ -1233,26 +1118,19 @@
                 return;
             }
             
-            // 작업 중인 AI 표시
-            container.innerHTML = runningApps.map(([key, app]) => `
-                <div class="queue-item running" data-app="${key}">
+            container.innerHTML = activeApps.map(([key, app]) => `
+                <div class="queue-item ${app.status}" data-app="${key}">
                     <div class="queue-dot"></div>
                     <span class="queue-name">${app.name}</span>
-                    <span class="queue-progress">${Math.round(app.progress)}%</span>
+                    <span class="queue-status-text">${t(app.status)}</span>
                 </div>
             `).join('');
         }
         
         function renderTimeline() {
             const container = document.getElementById('timelineList');
-            const purposeApps = state.purposes[state.currentPurpose].apps;
             
-            let items = state.timeline;
-            if (state.timelineScope === 'purpose') {
-                items = items.filter(item => purposeApps.includes(item.app));
-            }
-            
-            if (items.length === 0) {
+            if (state.timeline.length === 0) {
                 container.innerHTML = `
                     <div style="font-size: 11px; color: var(--text-quaternary); padding: 12px 8px; text-align: center;">
                         아직 진행 중인 작업이 없습니다
@@ -1261,12 +1139,12 @@
                 return;
             }
             
-            container.innerHTML = items.map(item => {
-                const app = state.apps[item.app];
+            container.innerHTML = state.timeline.slice(0, 10).map(item => {
+                const app = state.apps[item.appKey];
                 if (!app) return '';
                 return `
-                    <div class="timeline-item ${state.focusedApp === item.app ? 'active' : ''}" data-app="${item.app}">
-                        <div class="timeline-indicator ${app.status}"></div>
+                    <div class="timeline-item ${state.focusedApp === item.appKey ? 'active' : ''}" data-app="${item.appKey}">
+                        <div class="timeline-indicator ${item.status}"></div>
                         <div class="timeline-info">
                             <div class="timeline-name">${app.name}</div>
                             <div class="timeline-task">${item.task}</div>
@@ -1277,92 +1155,6 @@
             }).join('');
         }
         
-        // 앱별 목적 분류
-        const appPurposeMap = {
-            // 코딩
-            'cursor': 'coding',
-            'copilot': 'coding',
-            'copilotchrome': 'coding',
-            'githubcopilot': 'coding',
-            'replit': 'coding',
-            'replitchrome': 'coding',
-            
-            // 리서치
-            'claude': 'research',
-            'claudechrome': 'research',
-            'claudesafari': 'research',
-            'chatgpt': 'research',
-            'chatgptchrome': 'research',
-            'chatgptsafari': 'research',
-            'gemini': 'research',
-            'geminichrome': 'research',
-            'geminisafari': 'research',
-            'perplexity': 'research',
-            'perplexitychrome': 'research',
-            'perplexitysafari': 'research',
-            'grok': 'research',
-            'grokchrome': 'research',
-            'poe': 'research',
-            'poechrome': 'research',
-            
-            // 크리에이티브 - 이미지
-            'midjourney': 'creative',
-            'midjjourneychrome': 'creative',
-            'dalle': 'creative',
-            'dallechrome': 'creative',
-            'leonardoai': 'creative',
-            'leonardoaichrome': 'creative',
-            'ideogram': 'creative',
-            'ideogramchrome': 'creative',
-            'playground': 'creative',
-            'playgroundchrome': 'creative',
-            'stablediffusion': 'creative',
-            'adobe firefly': 'creative',
-            'adobefirefly': 'creative',
-            
-            // 크리에이티브 - 영상
-            'nanobanana': 'creative',
-            'nanobananachrome': 'creative',
-            'nanobananasafari': 'creative',
-            'runway': 'creative',
-            'runwaychrome': 'creative',
-            'runwayml': 'creative',
-            'pika': 'creative',
-            'pikachrome': 'creative',
-            'pikalabs': 'creative',
-            'sora': 'creative',
-            'sorachrome': 'creative',
-            'kling': 'creative',
-            'klingchrome': 'creative',
-            'klingai': 'creative',
-            'luma': 'creative',
-            'lumachrome': 'creative',
-            'lumaai': 'creative',
-            'dreammachine': 'creative',
-            'heygen': 'creative',
-            'heygenchrome': 'creative',
-            'synthesia': 'creative',
-            'synthesiachrome': 'creative',
-            'invideo': 'creative',
-            'invideochrome': 'creative',
-            'descript': 'creative',
-            'descriptchrome': 'creative',
-            'kapwing': 'creative',
-            'kapwingchrome': 'creative',
-            'veed': 'creative',
-            'veedchrome': 'creative',
-            'fliki': 'creative',
-            'flikichrome': 'creative',
-            
-            // 크리에이티브 - 기타
-            'notion': 'creative',
-            'notionchrome': 'creative',
-            'canva': 'creative',
-            'canvachrome': 'creative',
-            'figma': 'creative',
-            'figmachrome': 'creative'
-        };
-        
         function renderWorkspace() {
             const workspace = document.getElementById('workspace');
             workspace.className = `workspace layout-${state.currentLayout}`;
@@ -1370,10 +1162,11 @@
             const count = state.layouts[state.currentLayout];
             let monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
             
-            // 목적별 필터링 (all이 아닌 경우)
+            // 목적별 필터링
             if (state.currentPurpose !== 'all') {
                 monitoredApps = monitoredApps.filter(([key, _]) => {
-                    const purpose = appPurposeMap[key] || 'research';
+                    const keyNormalized = key.toLowerCase().replace(/[\s()]/g, '');
+                    const purpose = appPurposeMap[keyNormalized] || 'research';
                     return purpose === state.currentPurpose;
                 });
             }
@@ -1381,13 +1174,14 @@
             const appsToShow = monitoredApps.slice(0, count);
             
             if (appsToShow.length === 0) {
+                workspace.className = 'workspace layout-focus'; // 전체 화면으로 표시
                 workspace.innerHTML = `
                     <div class="window">
                         <div class="window-body">
                             <div class="window-placeholder">
-                                <div class="placeholder-text" style="font-size: 15px; color: var(--text-secondary); line-height: 1.6;">
+                                <div style="font-size: 17px; color: var(--text-secondary); line-height: 1.8; text-align: center;">
                                     AI 도구 실행 시 자동으로 감지해 노출됩니다.<br>
-                                    <span style="color: var(--text-tertiary);">미노출 시 우상단 'AI 감지' 버튼을 클릭하세요.</span>
+                                    <span style="color: var(--text-tertiary); font-size: 14px;">미노출 시 우상단 'AI 감지' 버튼을 클릭하세요.</span>
                                 </div>
                             </div>
                         </div>
@@ -1397,55 +1191,354 @@
             }
             
             workspace.innerHTML = appsToShow.map(([key, app]) => {
+                const isWeb = app.isWeb;
                 const showProgress = state.settings.showProgress && app.status === 'running';
+                
+                let bodyContent;
+                if (isWeb) {
+                    // 웹 AI: webview로 직접 조작 (앱별 세션 분리)
+                    const partitionName = key.replace(/[^a-z0-9]/gi, '');
+                    bodyContent = `
+                        <webview class="window-webview" data-app="${key}" 
+                            src="${app.url}" 
+                            partition="persist:${partitionName}"
+                            allowpopups
+                            webpreferences="contextIsolation=no"></webview>
+                    `;
+                } else {
+                    // 데스크탑 앱: 스크린샷 + 클릭 전환
+                    bodyContent = app.screenshot 
+                        ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">
+                           <div class="screenshot-overlay">
+                               <button class="overlay-btn" data-app="${key}">앱으로 전환 ↗</button>
+                           </div>`
+                        : `<div class="window-placeholder">
+                               <div class="loading-spinner"></div>
+                               <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 12px;">화면 캡처 중...</div>
+                           </div>`;
+                }
                 
                 return `
                     <div class="window ${state.focusedApp === key ? 'focused' : ''}" data-app="${key}">
                         <div class="window-header">
                             <div class="window-title">
-                                <div class="app-dot ${app.color}" style="${app.customColor ? `background: ${app.customColor}` : ''}"></div>
+                                <div class="app-dot" style="background: ${app.customColor || 'var(--accent)'}"></div>
                                 <span class="window-name">${app.name}</span>
+                                <span class="type-badge ${isWeb ? 'web' : 'desktop'}">${isWeb ? 'WEB' : 'APP'}</span>
                             </div>
                             <div class="window-status">
                                 <div class="status-dot ${app.status}"></div>
                                 <span>${t(app.status === 'running' ? 'running' : app.status === 'done' ? 'done' : 'ready')}</span>
                             </div>
                             <div class="window-actions">
-                                <button class="window-btn open-btn" data-app="${key}" title="앱으로 전환">↗</button>
+                                ${!isWeb ? `<button class="window-btn open-btn" data-app="${key}" title="앱으로 전환">↗</button>` : ''}
+                                <button class="window-btn reload-btn" data-app="${key}" title="새로고침">⟳</button>
                             </div>
                         </div>
-                        <div class="window-body" data-app="${key}">
-                            ${app.screenshot 
-                                ? `<img class="window-screenshot" src="${app.screenshot}" alt="${app.name}">`
-                                : `<div class="window-placeholder">
-                                    <div class="loading-spinner"></div>
-                                    <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 12px;">화면 캡처 중...</div>
-                                  </div>`
-                            }
-                            ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:${app.progress}%"></div></div>` : ''}
+                        <div class="window-body ${!isWeb ? 'clickable' : ''}" data-app="${key}">
+                            ${bodyContent}
+                            ${showProgress ? `<div class="window-progress"><div class="progress-bar" style="width:50%"></div></div>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
             
-            // 클릭하면 앱 활성화
-            workspace.querySelectorAll('.window-body').forEach(body => {
-                body.addEventListener('click', async (e) => {
-                    if (e.target.closest('.window-actions')) return;
-                    const appKey = body.dataset.app;
-                    const app = state.apps[appKey];
+            // 이벤트 바인딩
+            bindWorkspaceEvents();
+        }
+        
+        function bindWorkspaceEvents() {
+            const windows = document.querySelectorAll('.window');
+            
+            // 데스크탑 앱 클릭 → 앱 활성화
+            document.querySelectorAll('.screenshot-overlay .overlay-btn, .open-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const key = btn.dataset.app;
+                    const app = state.apps[key];
                     if (app) {
                         await ipcRenderer.invoke('activate-app', app.name);
                         toast('↗', `${app.name} 활성화`);
                     }
                 });
             });
+            
+            // 데스크탑 앱 body 클릭 → 앱 활성화
+            document.querySelectorAll('.window-body.clickable').forEach(body => {
+                body.addEventListener('click', async (e) => {
+                    if (e.target.closest('.overlay-btn')) return;
+                    const key = body.dataset.app;
+                    const app = state.apps[key];
+                    if (app && !app.isWeb) {
+                        await ipcRenderer.invoke('activate-app', app.name);
+                        toast('↗', `${app.name} 활성화`);
+                    }
+                });
+            });
+            
+            // 새로고침 버튼
+            document.querySelectorAll('.reload-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const key = btn.dataset.app;
+                    const app = state.apps[key];
+                    if (app?.isWeb) {
+                        const webview = document.querySelector(`webview[data-app="${key}"]`);
+                        if (webview) webview.reload();
+                    } else {
+                        captureDesktopApps();
+                    }
+                    toast('⟳', '새로고침');
+                });
+            });
+            
+            // 창 포커스 (헤더 클릭)
+            document.querySelectorAll('.window-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    if (e.target.closest('.window-actions')) return;
+                    const win = header.closest('.window');
+                    state.focusedApp = win.dataset.app;
+                    windows.forEach(w => 
+                        w.classList.toggle('focused', w.dataset.app === state.focusedApp));
+                });
+            });
+            
+            // 드래그 앤 드롭
+            windows.forEach(win => {
+                win.setAttribute('draggable', 'true');
+                
+                win.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', win.dataset.app);
+                    win.classList.add('dragging');
+                });
+                
+                win.addEventListener('dragend', () => {
+                    win.classList.remove('dragging');
+                    windows.forEach(w => w.classList.remove('drag-over'));
+                });
+                
+                win.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (!win.classList.contains('dragging')) {
+                        win.classList.add('drag-over');
+                    }
+                });
+                
+                win.addEventListener('dragleave', () => {
+                    win.classList.remove('drag-over');
+                });
+                
+                win.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    win.classList.remove('drag-over');
+                    
+                    const draggedApp = e.dataTransfer.getData('text/plain');
+                    const targetApp = win.dataset.app;
+                    
+                    if (draggedApp && targetApp && draggedApp !== targetApp) {
+                        // 앱 순서 교환
+                        swapApps(draggedApp, targetApp);
+                    }
+                });
+            });
+            
+            // Webview 상태 감지 시작
+            startWebviewStatusDetection();
+        }
+        
+        function swapApps(app1Key, app2Key) {
+            const keys = Object.keys(state.apps);
+            const idx1 = keys.indexOf(app1Key);
+            const idx2 = keys.indexOf(app2Key);
+            
+            if (idx1 === -1 || idx2 === -1) return;
+            
+            // 순서 재배열
+            const newApps = {};
+            keys.forEach((key, i) => {
+                if (i === idx1) {
+                    newApps[app2Key] = state.apps[app2Key];
+                } else if (i === idx2) {
+                    newApps[app1Key] = state.apps[app1Key];
+                } else {
+                    newApps[key] = state.apps[key];
+                }
+            });
+            
+            state.apps = newApps;
+            renderWorkspace();
+            toast('↔', '위치 변경됨');
         }
         
         function render() {
             renderStatusQueue();
             renderTimeline();
             renderWorkspace();
+        }
+        
+        // ========== Webview 상태 감지 ==========
+        function startWebviewStatusDetection() {
+            document.querySelectorAll('webview').forEach(webview => {
+                const appKey = webview.dataset.app;
+                
+                webview.addEventListener('did-finish-load', () => {
+                    // 로드 완료 후 상태 감지 시작
+                    detectWebviewStatus(webview, appKey);
+                });
+                
+                webview.addEventListener('dom-ready', () => {
+                    // 주기적 상태 감지
+                    setInterval(() => detectWebviewStatus(webview, appKey), 2000);
+                });
+            });
+        }
+        
+        async function detectWebviewStatus(webview, appKey) {
+            const keyLower = appKey.toLowerCase().replace(/[\s()]/g, '');
+            let selectors = null;
+            
+            // 서비스별 셀렉터 찾기
+            for (const [service, sel] of Object.entries(statusSelectors)) {
+                if (keyLower.includes(service)) {
+                    selectors = sel;
+                    break;
+                }
+            }
+            
+            if (!selectors) return;
+            
+            try {
+                const script = `
+                    (function() {
+                        const running = document.querySelector('${selectors.running}');
+                        if (running) return 'running';
+                        return 'idle';
+                    })()
+                `;
+                
+                const status = await webview.executeJavaScript(script);
+                const app = state.apps[appKey];
+                
+                if (app && app.status !== status) {
+                    const prevStatus = app.status;
+                    app.status = status;
+                    
+                    // 상태 변경 시 타임라인 업데이트
+                    if (status === 'running') {
+                        addToTimeline(appKey, '작업 시작', 'running');
+                    } else if (prevStatus === 'running' && status === 'idle') {
+                        app.status = 'done';
+                        addToTimeline(appKey, '작업 완료', 'done');
+                        
+                        if (state.settings.notifyComplete) {
+                            toast('✓', `${app.name} 작업 완료`);
+                            // 시스템 알림
+                            new Notification('DCC', { body: `${app.name} 작업이 완료되었습니다.` });
+                        }
+                        
+                        // 3초 후 idle로 변경
+                        setTimeout(() => {
+                            app.status = 'idle';
+                            renderStatusQueue();
+                        }, 3000);
+                    }
+                    
+                    renderStatusQueue();
+                }
+            } catch (e) {
+                // 감지 실패 무시
+            }
+        }
+        
+        function addToTimeline(appKey, task, status) {
+            const now = new Date();
+            const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            state.timeline.unshift({
+                appKey,
+                task,
+                status,
+                time,
+                timestamp: now.getTime()
+            });
+            
+            // 최대 50개 유지
+            if (state.timeline.length > 50) {
+                state.timeline = state.timeline.slice(0, 50);
+            }
+            
+            renderTimeline();
+        }
+        
+        // ========== 데스크탑 앱 스크린샷 ==========
+        let captureInterval = null;
+        
+        async function captureDesktopApps() {
+            const desktopAppsToCapture = Object.entries(state.apps)
+                .filter(([_, app]) => app.monitored && !app.isWeb);
+            
+            if (desktopAppsToCapture.length === 0) return;
+            
+            const appInfos = desktopAppsToCapture.map(([_, app]) => ({
+                name: app.name,
+                browser: app.browser || null
+            }));
+            
+            const results = await ipcRenderer.invoke('capture-all-windows', appInfos);
+            
+            desktopAppsToCapture.forEach(([key, app]) => {
+                if (results[app.name]) {
+                    app.screenshot = results[app.name];
+                    const img = document.querySelector(`.window[data-app="${key}"] .window-screenshot`);
+                    if (img) {
+                        img.src = results[app.name];
+                    }
+                }
+            });
+        }
+        
+        function startDesktopCapture() {
+            if (captureInterval) clearInterval(captureInterval);
+            captureDesktopApps();
+            captureInterval = setInterval(captureDesktopApps, 3000);
+        }
+        
+        // ========== 알림 감지 (데스크탑 앱용) ==========
+        async function checkNotifications() {
+            try {
+                const notifications = await ipcRenderer.invoke('get-recent-notifications');
+                
+                notifications.forEach(notif => {
+                    // 앱 이름으로 매칭
+                    const matchingApp = Object.entries(state.apps).find(([key, app]) => {
+                        const appName = app.name.toLowerCase();
+                        const notifApp = (notif.app || '').toLowerCase();
+                        return notifApp.includes(appName) || appName.includes(notifApp);
+                    });
+                    
+                    if (matchingApp) {
+                        const [key, app] = matchingApp;
+                        
+                        // 알림 내용에 따라 상태 업데이트
+                        const body = (notif.body || '').toLowerCase();
+                        if (body.includes('완료') || body.includes('complete') || body.includes('done') || body.includes('finished')) {
+                            app.status = 'done';
+                            addToTimeline(key, notif.body || '작업 완료', 'done');
+                            
+                            if (state.settings.notifyComplete) {
+                                toast('✓', `${app.name}: ${notif.body || '작업 완료'}`);
+                            }
+                            
+                            setTimeout(() => {
+                                app.status = 'idle';
+                                renderStatusQueue();
+                            }, 3000);
+                        }
+                    }
+                });
+            } catch (e) {
+                // 알림 감지 실패 무시
+            }
         }
         
         // ========== Event Handlers ==========
@@ -1461,7 +1554,6 @@
                 document.querySelectorAll('.purpose-option').forEach(o => o.classList.remove('active'));
                 opt.classList.add('active');
                 document.getElementById('purposeLabel').textContent = opt.textContent;
-                document.getElementById('scopePurpose').textContent = opt.textContent;
                 purposeDropdown.classList.remove('open');
                 render();
                 saveSettings();
@@ -1481,61 +1573,6 @@
                 renderWorkspace();
                 saveSettings();
             });
-        });
-        
-        // Scope toggle
-        document.querySelectorAll('.scope-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.scope-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                state.timelineScope = btn.dataset.scope;
-                renderTimeline();
-            });
-        });
-        
-        // Timeline clicks
-        document.getElementById('timelineList').addEventListener('click', e => {
-            const item = e.target.closest('.timeline-item');
-            if (item) {
-                state.focusedApp = item.dataset.app;
-                render();
-            }
-        });
-        
-        // Workspace clicks
-        document.getElementById('workspace').addEventListener('click', async e => {
-            const reloadBtn = e.target.closest('.reload-btn');
-            if (reloadBtn) {
-                // 스크린샷 갱신
-                toast('⟳', '화면 갱신 중...');
-                await captureScreenshots();
-                return;
-            }
-            
-            const openBtn = e.target.closest('.open-btn');
-            if (openBtn) {
-                const app = state.apps[openBtn.dataset.app];
-                if (app) {
-                    await ipcRenderer.invoke('activate-app', app.name);
-                    toast('↗', `${app.name} 활성화`);
-                }
-                return;
-            }
-            
-            const window = e.target.closest('.window');
-            if (window && !e.target.closest('.window-actions') && !e.target.closest('.window-body')) {
-                state.focusedApp = window.dataset.app;
-                document.querySelectorAll('.window').forEach(w => w.classList.toggle('focused', w.dataset.app === state.focusedApp));
-            }
-        });
-        
-        // Status queue clicks
-        document.getElementById('statusQueue').addEventListener('click', e => {
-            const item = e.target.closest('.queue-item');
-            if (item) {
-                state.focusedApp = item.dataset.app;
-                render();
-            }
         });
         
         // Fold toggle
@@ -1583,121 +1620,102 @@
         
         // Transfer - AI 결과 복사
         document.getElementById('transferBtn').addEventListener('click', async () => {
-            const focusedWebview = document.querySelector(`.window.focused webview`);
-            if (!focusedWebview) {
+            if (!state.focusedApp) {
                 toast('⚠', '먼저 창을 선택하세요');
                 return;
             }
             
-            const appKey = focusedWebview.dataset.app;
-            const app = state.apps[appKey];
+            const app = state.apps[state.focusedApp];
+            if (!app?.isWeb) {
+                toast('⚠', '웹 AI만 결과 복사가 가능합니다');
+                return;
+            }
             
-            // 각 서비스별 결과 추출 selector
+            const webview = document.querySelector(`webview[data-app="${state.focusedApp}"]`);
+            if (!webview) return;
+            
             const selectors = {
-                claude: '.font-claude-message, [class*="prose"], .whitespace-pre-wrap',
-                gpt: '[data-message-author-role="assistant"] .markdown, .result-streaming',
-                gemini: '.response-container, .model-response-text',
-                perplexity: '.prose, .answer-text',
-                notion: '.notion-page-content',
-                midjourney: '.imageContainer img'
+                claude: '.font-claude-message:last-child, [class*="prose"]:last-child',
+                chatgpt: '[data-message-author-role="assistant"]:last-child .markdown',
+                gemini: '.model-response-text:last-child',
+                perplexity: '.prose:last-child'
             };
             
+            const keyLower = state.focusedApp.toLowerCase();
+            let selector = 'body';
+            for (const [service, sel] of Object.entries(selectors)) {
+                if (keyLower.includes(service)) {
+                    selector = sel;
+                    break;
+                }
+            }
+            
             try {
-                const selector = selectors[appKey] || 'body';
                 const script = `
                     (function() {
-                        const elements = document.querySelectorAll('${selector}');
-                        if (elements.length > 0) {
-                            const lastEl = elements[elements.length - 1];
-                            return lastEl.innerText || lastEl.src || '';
-                        }
-                        return '';
+                        const el = document.querySelector('${selector}');
+                        return el ? el.innerText : '';
                     })()
                 `;
-                
-                const result = await focusedWebview.executeJavaScript(script);
+                const result = await webview.executeJavaScript(script);
                 
                 if (result && result.trim()) {
-                    // 클립보드에 복사
                     await navigator.clipboard.writeText(result.trim());
-                    state.lastCopied = { from: appKey, content: result.trim() };
+                    state.lastCopied = { from: state.focusedApp, content: result.trim() };
                     toast('📋', `${app.name} 결과 복사됨`);
                 } else {
                     toast('⚠', '복사할 결과가 없습니다');
                 }
             } catch (e) {
-                console.error(e);
                 toast('⚠', '결과를 가져올 수 없습니다');
             }
         });
         
-        // 결과 복사 단축키 (Cmd+T)
+        // 단축키
         document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 't') {
+            // ⌘T: 결과 복사
+            if ((e.metaKey) && !e.ctrlKey && !e.altKey && e.key === 't') {
                 e.preventDefault();
                 document.getElementById('transferBtn').click();
+                return;
             }
-        });
-        
-        // AI to AI 전송 (Cmd+Shift+V)
-        document.addEventListener('keydown', async (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+            
+            // ⌥1~4: 레이아웃 전환 (Option + 숫자)
+            if (e.altKey && !e.metaKey && !e.ctrlKey && ['1', '2', '3', '4'].includes(e.key)) {
                 e.preventDefault();
-                
-                if (!state.lastCopied) {
-                    toast('⚠', '먼저 결과를 복사하세요 (⌘T)');
-                    return;
+                const layouts = ['focus', 'split', 'grid', 'stack'];
+                const idx = parseInt(e.key) - 1;
+                if (layouts[idx]) {
+                    state.currentLayout = layouts[idx];
+                    document.querySelectorAll('.layout-tab').forEach(t => 
+                        t.classList.toggle('active', t.dataset.layout === state.currentLayout));
+                    renderWorkspace();
+                    saveSettings();
+                    toast('⊞', `레이아웃: ${layouts[idx]}`);
                 }
-                
-                const focusedWebview = document.querySelector(`.window.focused webview`);
-                if (!focusedWebview) {
-                    toast('⚠', '붙여넣을 창을 선택하세요');
-                    return;
+                return;
+            }
+            
+            // ⇧1~4: 목적 전환 (Shift + 숫자)
+            if (e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                // Shift + 숫자는 특수문자가 됨: ! @ # $
+                const keyMap = { '!': 0, '@': 1, '#': 2, '$': 3 };
+                const idx = keyMap[e.key];
+                if (idx !== undefined) {
+                    e.preventDefault();
+                    const purposes = ['all', 'research', 'coding', 'creative'];
+                    const purposeNames = ['전체', '리서치', '코딩', '크리에이티브'];
+                    state.currentPurpose = purposes[idx];
+                    document.querySelectorAll('.purpose-option').forEach(o => {
+                        const active = o.dataset.purpose === state.currentPurpose;
+                        o.classList.toggle('active', active);
+                        if (active) document.getElementById('purposeLabel').textContent = o.textContent;
+                    });
+                    render();
+                    saveSettings();
+                    toast('◎', `목적: ${purposeNames[idx]}`);
                 }
-                
-                const appKey = focusedWebview.dataset.app;
-                const app = state.apps[appKey];
-                
-                // 각 서비스별 입력창 selector
-                const inputSelectors = {
-                    claude: '[contenteditable="true"], textarea',
-                    gpt: '#prompt-textarea, textarea',
-                    gemini: '[contenteditable="true"], textarea',
-                    perplexity: 'textarea',
-                    notion: '[contenteditable="true"]'
-                };
-                
-                try {
-                    const selector = inputSelectors[appKey] || 'textarea, [contenteditable="true"]';
-                    const script = `
-                        (function() {
-                            const input = document.querySelector('${selector}');
-                            if (input) {
-                                if (input.tagName === 'TEXTAREA') {
-                                    input.value = ${JSON.stringify(state.lastCopied.content)};
-                                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                                } else {
-                                    input.innerText = ${JSON.stringify(state.lastCopied.content)};
-                                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                                }
-                                input.focus();
-                                return true;
-                            }
-                            return false;
-                        })()
-                    `;
-                    
-                    const success = await focusedWebview.executeJavaScript(script);
-                    
-                    if (success) {
-                        toast('↗', `${state.apps[state.lastCopied.from].name} → ${app.name}`);
-                    } else {
-                        toast('⚠', '입력창을 찾을 수 없습니다');
-                    }
-                } catch (e) {
-                    console.error(e);
-                    toast('⚠', '붙여넣기 실패');
-                }
+                return;
             }
         });
         
@@ -1709,86 +1727,6 @@
             t.innerHTML = `<span>${icon}</span><span>${message}</span>`;
             container.appendChild(t);
             setTimeout(() => t.remove(), 3000);
-        }
-        
-        // ========== Screenshot Capture ==========
-        let captureInterval = null;
-        
-        let captureFailCount = 0;
-        
-        async function captureScreenshots() {
-            const monitoredApps = Object.entries(state.apps).filter(([_, app]) => app.monitored);
-            if (monitoredApps.length === 0) return;
-            
-            // 앱 정보 (브라우저 탭인지 여부 포함)
-            const appInfos = monitoredApps.map(([_, app]) => ({
-                name: app.name,
-                browser: app.browser || null
-            }));
-            
-            const results = await ipcRenderer.invoke('capture-all-windows', appInfos);
-            
-            let successCount = 0;
-            monitoredApps.forEach(([key, app]) => {
-                if (results[app.name]) {
-                    app.screenshot = results[app.name];
-                    successCount++;
-                    // 이미지만 업데이트 (전체 리렌더 방지)
-                    const img = document.querySelector(`.window[data-app="${key}"] .window-screenshot`);
-                    if (img) {
-                        img.src = results[app.name];
-                    } else {
-                        renderWorkspace();
-                    }
-                }
-            });
-            
-            // 캡처 실패해도 앱 목록은 유지 (권한 안내 제거)
-        }
-        
-        function showPermissionGuide() {
-            const workspace = document.getElementById('workspace');
-            workspace.innerHTML = `
-                <div class="window">
-                    <div class="window-body">
-                        <div class="window-placeholder" style="text-align: center; padding: 40px;">
-                            <div style="font-size: 16px; color: var(--text-primary); margin-bottom: 16px;">
-                                화면 캡처 권한이 필요합니다
-                            </div>
-                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 2; margin-bottom: 20px;">
-                                1. 시스템 설정 → 개인정보 보호 및 보안<br>
-                                2. 화면 및 시스템 오디오 녹음 클릭<br>
-                                3. <strong style="color: var(--accent);">Electron</strong> 또는 <strong style="color: var(--accent);">터미널</strong> 활성화<br>
-                                4. 앱 재시작
-                            </div>
-                            <div style="font-size: 11px; color: var(--text-quaternary); margin-bottom: 16px;">
-                                개발 모드에서는 "Electron" 또는 "터미널"로 표시됩니다
-                            </div>
-                            <button onclick="require('electron').shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')" 
-                                    style="background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px;">
-                                시스템 설정 열기
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        function startCapturing() {
-            if (captureInterval) clearInterval(captureInterval);
-            
-            // 처음 바로 캡처
-            captureScreenshots();
-            
-            // 2초마다 갱신
-            captureInterval = setInterval(captureScreenshots, 2000);
-        }
-        
-        function stopCapturing() {
-            if (captureInterval) {
-                clearInterval(captureInterval);
-                captureInterval = null;
-            }
         }
         
         // ========== Persistence ==========
@@ -1812,15 +1750,14 @@
                     Object.assign(state.settings, data.settings);
                     
                     // Apply to UI
-                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === state.lang));
-                    document.querySelectorAll('.layout-tab').forEach(t => t.classList.toggle('active', t.dataset.layout === state.currentLayout));
+                    document.querySelectorAll('.lang-btn').forEach(b => 
+                        b.classList.toggle('active', b.dataset.lang === state.lang));
+                    document.querySelectorAll('.layout-tab').forEach(t => 
+                        t.classList.toggle('active', t.dataset.layout === state.currentLayout));
                     document.querySelectorAll('.purpose-option').forEach(o => {
                         const active = o.dataset.purpose === state.currentPurpose;
                         o.classList.toggle('active', active);
-                        if (active) {
-                            document.getElementById('purposeLabel').textContent = o.textContent;
-                            document.getElementById('scopePurpose').textContent = o.textContent;
-                        }
+                        if (active) document.getElementById('purposeLabel').textContent = o.textContent;
                     });
                     ['notifyComplete', 'autoFocus', 'showProgress'].forEach(id => {
                         document.getElementById(id).checked = state.settings[id];
@@ -1829,163 +1766,14 @@
             }
         }
         
-        // ========== Add AI Modal ==========
-        const { ipcRenderer } = require('electron');
-        
-        const addAiModal = document.getElementById('addAiModal');
-        let selectedColor = '#a78bfa';
-        
-        // 알려진 AI 서비스 매핑
-        const knownAiApps = {
-            'Claude': { url: 'https://claude.ai', color: '#a78bfa' },
-            'ChatGPT': { url: 'https://chat.openai.com', color: '#10b981' },
-            'Gemini': { url: 'https://gemini.google.com', color: '#3b82f6' },
-            'Perplexity': { url: 'https://perplexity.ai', color: '#06b6d4' },
-            'Grok': { url: 'https://grok.x.ai', color: '#ef4444' },
-            'Copilot': { url: 'https://copilot.microsoft.com', color: '#3b82f6' },
-            'Pi': { url: 'https://pi.ai', color: '#f59e0b' },
-            'Poe': { url: 'https://poe.com', color: '#8b5cf6' },
-            'HuggingChat': { url: 'https://huggingface.co/chat', color: '#f59e0b' },
-            'Midjourney': { url: 'https://midjourney.com', color: '#f59e0b' },
-            'DALL-E': { url: 'https://labs.openai.com', color: '#10b981' },
-            'Stable Diffusion': { url: 'https://stability.ai', color: '#8b5cf6' },
-            'Runway': { url: 'https://runway.ml', color: '#06b6d4' },
-            'Notion': { url: 'https://notion.so', color: '#e11d48' }
-        };
-        
-        // AI 관련 키워드
-        const aiKeywords = ['Claude', 'ChatGPT', 'GPT', 'Gemini', 'Perplexity', 'Grok', 'Copilot', 
-                           'AI', 'Chat', 'Assistant', 'Midjourney', 'DALL', 'Stable', 'Runway',
-                           'Notion', 'Pi', 'Poe', 'Hugging'];
-        
-        document.getElementById('modalClose').addEventListener('click', closeModal);
-        document.getElementById('modalCancel').addEventListener('click', closeModal);
-        addAiModal.addEventListener('click', (e) => {
-            if (e.target === addAiModal) closeModal();
-        });
-        
-        function closeModal() {
-            addAiModal.classList.remove('show');
-            document.getElementById('newAppName').value = '';
-            document.getElementById('newAppUrl').value = '';
-        }
-        
-        // 색상 선택
-        document.getElementById('colorOptions').addEventListener('click', (e) => {
-            const option = e.target.closest('.color-option');
-            if (option) {
-                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-                option.classList.add('selected');
-                selectedColor = option.dataset.color;
-            }
-        });
-        
-        // 앱 추가
-        document.getElementById('modalAdd').addEventListener('click', () => {
-            const name = document.getElementById('newAppName').value.trim();
-            const url = document.getElementById('newAppUrl').value.trim();
-            
-            if (!name || !url) {
-                toast('⚠', '이름과 URL을 입력하세요');
-                return;
-            }
-            
-            addNewApp(name, url, selectedColor);
-            closeModal();
-        });
-        
-        function addNewApp(name, url, color) {
-            const key = name.toLowerCase().replace(/\s+/g, '');
-            
-            // 이미 존재하는지 확인
-            if (state.apps[key]) {
-                toast('⚠', '이미 추가된 앱입니다');
-                return;
-            }
-            
-            // 새 앱 추가
-            state.apps[key] = {
-                name: name,
-                url: url.startsWith('http') ? url : 'https://' + url,
-                color: 'custom',
-                customColor: color,
-                status: 'idle',
-                progress: 0
-            };
-            
-            // 모든 purpose에 추가
-            Object.values(state.purposes).forEach(p => {
-                if (!p.apps.includes(key)) p.apps.push(key);
-            });
-            
-            // 타임라인에 추가
-            state.timeline.unshift({
-                app: key,
-                task: '새로 추가됨',
-                time: '방금'
-            });
-            
-            // CSS 변수 추가
-            document.documentElement.style.setProperty(`--${key}`, color);
-            
-            toast('✓', `${name} 추가됨`);
-            render();
-            saveSettings();
-        }
-        
-        // 수동 감지 버튼 - 바로 추가
+        // ========== AI 감지 ==========
         document.getElementById('scanBtn').addEventListener('click', async () => {
             const scanBtn = document.getElementById('scanBtn');
             scanBtn.classList.add('scanning');
             scanBtn.textContent = '감지 중...';
             
             try {
-                const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
-                let addedCount = 0;
-                
-                runningApps.forEach(appInfo => {
-                    const name = appInfo.name;
-                    const key = name.toLowerCase().replace(/[\s()]/g, '');
-                    
-                    // 이미 추가된 앱은 건너뛰기
-                    if (state.apps[key]?.monitored) return;
-                    
-                    // 색상 결정
-                    let color = '#a78bfa';
-                    if (name.includes('ChatGPT')) color = '#10b981';
-                    else if (name.includes('Gemini')) color = '#3b82f6';
-                    else if (name.includes('Claude')) color = '#a78bfa';
-                    else if (name.includes('Perplexity')) color = '#06b6d4';
-                    else if (name.includes('Cursor')) color = '#f59e0b';
-                    else if (name.includes('Grok')) color = '#ef4444';
-                    else if (name.includes('Copilot')) color = '#3b82f6';
-                    
-                    // 바로 추가
-                    state.apps[key] = {
-                        name: name,
-                        url: appInfo.url || '',
-                        color: 'custom',
-                        customColor: color,
-                        status: 'idle',
-                        progress: 0,
-                        monitored: true,
-                        screenshot: null,
-                        type: appInfo.type,
-                        browser: appInfo.browser
-                    };
-                    
-                    addedCount++;
-                });
-                
-                if (addedCount > 0) {
-                    toast('✓', `${addedCount}개 AI 추가됨`);
-                    renderWorkspace();
-                    renderStatusQueue();
-                    startCapturing();
-                } else {
-                    toast('ℹ', '새로운 AI가 없습니다');
-                }
-                
+                await autoDetectAI();
             } catch (e) {
                 console.error(e);
                 toast('⚠', '감지 실패');
@@ -1995,138 +1783,92 @@
             scanBtn.textContent = 'AI 감지';
         });
         
-        function showDetectedApps(apps) {
-            const section = document.getElementById('detectedSection');
-            const list = document.getElementById('detectedList');
+        async function autoDetectAI() {
+            const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
             
-            list.innerHTML = apps.map(app => `
-                <div class="detected-item" data-name="${app.name}" data-key="${app.key}" data-url="${app.url || ''}" data-color="${app.color}" data-type="${app.type}" data-browser="${app.browser || ''}">
-                    <div class="detected-icon" style="background: ${app.color}">${app.name.charAt(0)}</div>
-                    <span class="detected-name">${app.name}</span>
-                    <span class="detected-source">${app.type === 'browser' ? '🌐' : '💻'}</span>
-                    <span class="detected-add">+ 추가</span>
-                </div>
-            `).join('');
+            // 디버깅: 모든 실행 중인 앱 출력
+            const debugInfo = runningApps.find(a => a.name === '__DEBUG_ALL_APPS__');
+            if (debugInfo) {
+                console.log('=== ALL RUNNING APPS ===');
+                console.log(debugInfo.allApps);
+            }
             
-            section.style.display = 'block';
-            addAiModal.classList.add('show');
+            // 디버깅: 모든 창 목록 출력
+            const windowList = await ipcRenderer.invoke('get-window-list');
+            console.log('=== ALL WINDOWS ===');
+            console.log(windowList.map(w => w.name));
             
-            // 클릭 이벤트 - 모니터링에 추가
-            list.querySelectorAll('.detected-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const key = item.dataset.key;
-                    const name = item.dataset.name;
-                    const color = item.dataset.color;
-                    const type = item.dataset.type;
-                    const browser = item.dataset.browser;
-                    
-                    // state.apps에 추가
-                    if (!state.apps[key]) {
-                        state.apps[key] = {
-                            name: name,
-                            url: item.dataset.url,
-                            color: 'custom',
-                            customColor: color,
-                            status: 'idle',
-                            progress: 0,
-                            monitored: true,
-                            screenshot: null,
-                            type: type,
-                            browser: browser
-                        };
-                    } else {
-                        state.apps[key].monitored = true;
+            // 필터링된 앱만 처리
+            const filteredApps = runningApps.filter(a => a.name !== '__DEBUG_ALL_APPS__');
+            console.log('Detected AI apps:', filteredApps.map(a => a.name));
+            
+            let addedCount = 0;
+            
+            filteredApps.forEach(appInfo => {
+                const name = appInfo.name;
+                const key = name.toLowerCase().replace(/[\s()]/g, '');
+                
+                if (state.apps[key]?.monitored) return;
+                
+                // 색상 결정 (앱별)
+                const colorMap = {
+                    'chatgpt': '#10b981', 'gemini': '#3b82f6', 'claude': '#a78bfa',
+                    'perplexity': '#06b6d4', 'grok': '#ef4444', 'poe': '#8b5cf6',
+                    'cursor': '#f59e0b', 'antigravity': '#ec4899', 'windsurf': '#06b6d4',
+                    'zed': '#f59e0b', 'vscode': '#3b82f6', 'xcode': '#3b82f6',
+                    'notion': '#e11d48', 'obsidian': '#8b5cf6', 'figma': '#f59e0b',
+                    'midjourney': '#f59e0b', 'runway': '#06b6d4'
+                };
+                let color = '#a78bfa';
+                for (const [appName, appColor] of Object.entries(colorMap)) {
+                    if (key.includes(appName)) {
+                        color = appColor;
+                        break;
                     }
-                    
-                    toast('✓', `${name} 추가됨`);
-                    item.remove();
-                    
-                    if (list.children.length === 0) {
-                        section.style.display = 'none';
-                        closeModal();
-                    }
-                    
-                    renderWorkspace();
-                    startCapturing();
-                });
+                }
+                
+                // 웹 AI 여부 판단
+                const isWeb = appInfo.type === 'browser' || isWebAI(key);
+                const url = isWeb ? (appInfo.url || getWebAIUrl(key)) : null;
+                
+                state.apps[key] = {
+                    name,
+                    url,
+                    customColor: color,
+                    status: 'idle',
+                    monitored: true,
+                    screenshot: null,
+                    isWeb,
+                    browser: appInfo.browser
+                };
+                
+                addedCount++;
             });
+            
+            if (addedCount > 0) {
+                toast('✓', `${addedCount}개 AI 추가됨`);
+                render();
+                startDesktopCapture();
+            } else {
+                toast('ℹ', '새로운 AI가 없습니다');
+            }
         }
         
         // ========== Init ==========
         loadSettings();
         render();
         
-        // 권한 상태 확인 및 창 목록 디버깅
-        checkPermission();
-        
-        async function checkPermission() {
-            const status = await ipcRenderer.invoke('check-screen-permission');
-            if (status !== 'granted') {
-                toast('⚠️', '화면 캡처 권한 필요. 시스템 설정에서 Electron 허용 후 재시작.');
-            } else {
-                // 창 목록 확인
-                const windows = await ipcRenderer.invoke('get-window-list');
-                if (windows && windows.length > 0) {
-                    console.log('Available windows:', windows);
-                }
-            }
+        // 알림 권한 요청
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
         }
         
-        // 앱 시작 시 자동 감지
+        // 자동 감지 시작
         autoDetectAI();
+        setInterval(autoDetectAI, 10000);
         
-        // 5초마다 자동 감지 (새로 실행된 AI 앱 추가)
-        setInterval(autoDetectAI, 5000);
-        
-        async function autoDetectAI() {
-            try {
-                const runningApps = await ipcRenderer.invoke('get-running-ai-apps');
-                let addedCount = 0;
-                
-                runningApps.forEach(appInfo => {
-                    const name = appInfo.name;
-                    const key = name.toLowerCase().replace(/[\s()]/g, '');
-                    
-                    // 이미 추가된 앱은 건너뛰기
-                    if (state.apps[key]?.monitored) return;
-                    
-                    // 색상 결정
-                    let color = '#a78bfa';
-                    if (name.includes('ChatGPT')) color = '#10b981';
-                    else if (name.includes('Gemini')) color = '#3b82f6';
-                    else if (name.includes('Claude')) color = '#a78bfa';
-                    else if (name.includes('Perplexity')) color = '#06b6d4';
-                    else if (name.includes('Cursor')) color = '#f59e0b';
-                    else if (name.includes('Grok')) color = '#ef4444';
-                    else if (name.includes('Copilot')) color = '#3b82f6';
-                    
-                    // 자동으로 모니터링에 추가
-                    state.apps[key] = {
-                        name: name,
-                        url: appInfo.url || '',
-                        color: 'custom',
-                        customColor: color,
-                        status: 'idle',
-                        progress: 0,
-                        monitored: true,
-                        screenshot: null,
-                        type: appInfo.type,
-                        browser: appInfo.browser
-                    };
-                    
-                    addedCount++;
-                });
-                
-                if (addedCount > 0) {
-                    toast('✓', `${addedCount}개 AI 자동 감지`);
-                    renderWorkspace();
-                    renderStatusQueue();
-                    startCapturing();
-                }
-            } catch (e) {
-                console.error('Auto detect failed:', e);
-            }
-        }
+        // 알림 감지 (데스크탑 앱용)
+        setInterval(checkNotifications, 5000);
     </script>
 </body>
 </html>
