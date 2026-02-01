@@ -26,9 +26,7 @@ function createWindow() {
 // 화면 캡처 권한 확인
 ipcMain.handle('check-screen-permission', async () => {
     const { systemPreferences } = require('electron');
-    const status = systemPreferences.getMediaAccessStatus('screen');
-    console.log('Screen permission status:', status);
-    return status;
+    return systemPreferences.getMediaAccessStatus('screen');
 });
 
 // 실행 중인 AI 앱 감지 (데스크탑 앱 + 브라우저 탭)
@@ -330,11 +328,8 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
     
     // 화면 녹화 권한 확인
     const hasAccess = systemPreferences.getMediaAccessStatus('screen');
-    console.log('Screen capture permission:', hasAccess);
     
     if (hasAccess !== 'granted') {
-        console.log('Screen capture not granted, requesting...');
-        // 권한이 없으면 빈 결과 반환
         return results;
     }
     
@@ -345,8 +340,6 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
             thumbnailSize: { width: 1200, height: 800 },
             fetchWindowIcons: false
         });
-        
-        console.log('Found sources:', sources.map(s => s.name));
         
         for (const info of appInfos) {
             const { name, browser } = info;
@@ -371,13 +364,10 @@ ipcMain.handle('capture-all-windows', async (event, appInfos) => {
             if (source && source.thumbnail) {
                 const dataUrl = source.thumbnail.toDataURL();
                 results[name] = dataUrl;
-                console.log('Captured:', name);
-            } else {
-                console.log('Not found:', name, 'searched:', searchTerms);
             }
         }
     } catch (e) {
-        console.error('Capture error:', e);
+        // 캡처 실패
     }
     
     return results;
